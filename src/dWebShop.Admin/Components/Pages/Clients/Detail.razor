@@ -4,6 +4,8 @@
 @using MediatR
 @using dWebShop.Application.Features.Partners.Queries
 @using dWebShop.Application.Features.Partners.Commands
+@using dWebShop.Application.Features.Pricelists.Commands
+@using dWebShop.Application.Features.Pricelists.Queries
 @inject IMediator Mediator
 @inject NavigationManager Navigation
 
@@ -19,38 +21,151 @@ else if (_notFound)
 }
 else
 {
-    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom: 16px;">
-        <FluentLabel Style="font-size: 22px; font-weight: 600;">Edit Client</FluentLabel>
-    </FluentStack>
-    <FluentDivider Style="margin-bottom: 24px;" />
-
-    <div style="max-width: 560px;">
-        <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px;">
-
-            @if (!string.IsNullOrEmpty(_error))
+    <div class="admin-page-head">
+        <div>
+            <nav class="admin-breadcrumb">
+                <a href="/clients">Commerce</a> › <a href="/clients">Clients</a> › @DisplayName
+            </nav>
+            <div class="admin-detail-title-row">
+                <span class="pl-avatar pl-avatar-lg">@Initials(DisplayName)</span>
+                <h1 class="admin-page-title">@DisplayName</h1>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(_email) || !string.IsNullOrWhiteSpace(_phone))
             {
-                <FluentMessageBar Intent="MessageBarIntent.Error">@_error</FluentMessageBar>
+                <p class="admin-page-sub">
+                    @if (!string.IsNullOrWhiteSpace(_email)) { <span>@_email</span> }
+                    @if (!string.IsNullOrWhiteSpace(_email) && !string.IsNullOrWhiteSpace(_phone)) { <span> · </span> }
+                    @if (!string.IsNullOrWhiteSpace(_phone)) { <span>@_phone</span> }
+                </p>
             }
+        </div>
+        <div class="admin-page-actions">
+            <FluentButton Appearance="ButtonAppearance.Transparent"
+                          IconStart="@(new Icons.Regular.Size16.ArrowLeft())"
+                          OnClick="@(() => Navigation.NavigateTo("/clients"))">Back</FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Primary"
+                          IconStart="@(new Icons.Regular.Size16.Checkmark())"
+                          Disabled="@_saving"
+                          OnClick="SaveAsync">
+                @if (_saving) { <span>Saving…</span> } else { <span>Save changes</span> }
+            </FluentButton>
+        </div>
+    </div>
 
-            @if (!string.IsNullOrEmpty(_success))
-            {
-                <FluentMessageBar Intent="MessageBarIntent.Success">@_success</FluentMessageBar>
-            }
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <FluentMessageBar Intent="MessageBarIntent.Error" Style="margin-bottom: 16px;">@_error</FluentMessageBar>
+    }
+    @if (!string.IsNullOrEmpty(_success))
+    {
+        <FluentMessageBar Intent="MessageBarIntent.Success" Style="margin-bottom: 16px;">@_success</FluentMessageBar>
+    }
 
-            <FluentTextInput @bind-Value="_firstName" Label="First Name" Style="width: 100%" />
-            <FluentTextInput @bind-Value="_lastName" Label="Last Name" Style="width: 100%" />
-            <FluentTextInput @bind-Value="_companyName" Label="Company Name" Style="width: 100%" />
-            <FluentTextInput @bind-Value="_email" Label="Email" TextInputType="TextInputType.Email" Style="width: 100%" />
-            <FluentTextInput @bind-Value="_phone" Label="Phone" Style="width: 100%" />
+    <div class="admin-detail-grid">
 
-            <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px; margin-top: 8px;">
-                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="SaveAsync">
-                    @if (_saving) { <FluentProgressRing Style="width:16px;height:16px;" /> } else { <span>Save Changes</span> }
-                </FluentButton>
-                <FluentButton OnClick="@(() => Navigation.NavigateTo("/clients"))">Back to Clients</FluentButton>
-            </FluentStack>
+        @* ── Left: profile ─────────────────────────────────── *@
+        <div class="admin-detail-main">
+            <FluentCard>
+                <div class="order-card-title" style="margin-bottom: 16px;">Company</div>
+                <div class="pl-form-grid">
+                    <div class="pl-field">
+                        <label class="co-label" for="cl-company">Company name</label>
+                        <input id="cl-company" class="co-input" @bind="_companyName" @bind:event="oninput"
+                               placeholder="Leave blank for an individual customer." />
+                    </div>
+                </div>
+            </FluentCard>
 
-        </FluentStack>
+            <FluentCard>
+                <div class="order-card-title" style="margin-bottom: 16px;">Contact</div>
+                <div class="pl-form-grid">
+                    <div class="pl-form-row">
+                        <div class="pl-field">
+                            <label class="co-label" for="cl-first">First name</label>
+                            <input id="cl-first" class="co-input" @bind="_firstName" @bind:event="oninput" />
+                        </div>
+                        <div class="pl-field">
+                            <label class="co-label" for="cl-last">Last name</label>
+                            <input id="cl-last" class="co-input" @bind="_lastName" @bind:event="oninput" />
+                        </div>
+                    </div>
+                    <div class="pl-form-row">
+                        <div class="pl-field">
+                            <label class="co-label" for="cl-email">Email</label>
+                            <input id="cl-email" type="email" class="co-input" @bind="_email" @bind:event="oninput"
+                                   placeholder="name@company.com" />
+                        </div>
+                        <div class="pl-field">
+                            <label class="co-label" for="cl-phone">Phone</label>
+                            <input id="cl-phone" class="co-input" @bind="_phone" @bind:event="oninput" />
+                        </div>
+                    </div>
+                </div>
+            </FluentCard>
+        </div>
+
+        @* ── Right: pricelists ─────────────────────────────── *@
+        <div class="admin-detail-side">
+            <FluentCard>
+                <div class="order-card-title" style="margin-bottom: 12px;">Pricelists</div>
+
+                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <select class="co-select" @bind="_selectedPricelistId" style="flex: 1;"
+                            disabled="@(AvailablePricelists.Count == 0)">
+                        <option value="0">@(AvailablePricelists.Count == 0 ? "All assigned" : "— add a pricelist —")</option>
+                        @foreach (var pl in AvailablePricelists)
+                        {
+                            <option value="@pl.Id">@pl.Name</option>
+                        }
+                    </select>
+                    <FluentButton Appearance="ButtonAppearance.Primary"
+                                  IconStart="@(new Icons.Regular.Size16.Add())"
+                                  Disabled="@(_selectedPricelistId == 0 || _pricelistBusy)"
+                                  OnClick="AssignAsync">Assign</FluentButton>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_pricelistError))
+                {
+                    <div style="color: var(--colorStatusDangerForeground1, #c50f1f); font-size: 12px; margin-bottom: 8px;">@_pricelistError</div>
+                }
+
+                @if (_pricelists.Count > 0)
+                {
+                    <div class="pl-clients">
+                        @foreach (var p in _pricelists)
+                        {
+                            var pl = p;
+                            <div class="pl-assign-row">
+                                <a class="pl-client-name" href="/pricelists/@pl.PricelistId" title="Open pricelist">@pl.PricelistName</a>
+                                @if (!pl.IsActive)
+                                {
+                                    <span class="pl-badge pl-badge-inactive">Inactive</span>
+                                }
+                                @if (pl.IsDefault)
+                                {
+                                    <span class="pl-badge pl-badge-default">Default</span>
+                                }
+                                else
+                                {
+                                    <button class="pl-link-btn" @onclick="@(() => SetDefaultAsync(pl.PricelistId))"
+                                            disabled="@_pricelistBusy" title="Make default">Set default</button>
+                                }
+                                <button class="co-remove-btn" title="Remove"
+                                        @onclick="@(() => RemoveAsync(pl.Id))" disabled="@_pricelistBusy">
+                                    <FluentIcon Value="@(new Icons.Regular.Size16.Dismiss())" />
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="pl-side-empty">
+                        No pricelists assigned. This client gets standard prices.
+                    </div>
+                }
+            </FluentCard>
+        </div>
     </div>
 }
 
@@ -68,34 +183,70 @@ else
     private bool _notFound;
     private bool _saving;
 
+    private List<PartnerPricelistDto> _pricelists = new();
+    private List<PricelistSummaryDto> _allPricelists = new();
+    private int _selectedPricelistId;
+    private string _pricelistError = "";
+    private bool _pricelistBusy;
+
+    private List<PricelistSummaryDto> AvailablePricelists =>
+        _allPricelists.Where(a => _pricelists.All(p => p.PricelistId != a.Id)).ToList();
+
+    private string DisplayName
+    {
+        get
+        {
+            var person = $"{_firstName} {_lastName}".Trim();
+            if (!string.IsNullOrWhiteSpace(_companyName))
+                return string.IsNullOrWhiteSpace(person) ? _companyName : $"{_companyName} — {person}";
+            return string.IsNullOrWhiteSpace(person) ? "Client" : person;
+        }
+    }
+
     protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        if (!_notFound)
+        {
+            _allPricelists = await Mediator.Send(new GetPricelistsQuery());
+        }
+        _loading = false;
+    }
+
+    private async Task LoadAsync()
     {
         var partner = await Mediator.Send(new GetPartnerByIdQuery(Id));
         if (partner is null)
         {
             _notFound = true;
+            return;
         }
-        else
-        {
-            _firstName = partner.FirstName;
-            _lastName = partner.LastName;
-            _companyName = partner.CompanyName;
-            _email = partner.Email;
-            _phone = partner.Phone;
-        }
-        _loading = false;
+
+        _firstName = partner.FirstName;
+        _lastName = partner.LastName;
+        _companyName = partner.CompanyName;
+        _email = partner.Email;
+        _phone = partner.Phone;
+        _pricelists = partner.Pricelists;
     }
 
     private async Task SaveAsync()
     {
         _error = "";
         _success = "";
+
+        if (string.IsNullOrWhiteSpace(_firstName) && string.IsNullOrWhiteSpace(_lastName) && string.IsNullOrWhiteSpace(_companyName))
+        {
+            _error = "Enter a company name, or a first/last name.";
+            return;
+        }
+
         _saving = true;
 
         try
         {
             await Mediator.Send(new UpdatePartnerCommand(Id, _firstName, _lastName, _companyName, _email, _phone));
-            _success = "Client updated successfully.";
+            _success = "Client saved.";
         }
         catch (Exception ex)
         {
@@ -103,5 +254,72 @@ else
         }
 
         _saving = false;
+    }
+
+    private async Task AssignAsync()
+    {
+        _pricelistError = "";
+        if (_selectedPricelistId == 0) return;
+
+        _pricelistBusy = true;
+        try
+        {
+            // First pricelist assigned becomes the default automatically.
+            var isDefault = _pricelists.Count == 0;
+            await Mediator.Send(new AssignClientPricelistCommand(Id, _selectedPricelistId, isDefault));
+            _selectedPricelistId = 0;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _pricelistError = ex.Message;
+        }
+        _pricelistBusy = false;
+    }
+
+    private async Task SetDefaultAsync(int pricelistId)
+    {
+        _pricelistError = "";
+        _pricelistBusy = true;
+        try
+        {
+            // Ensure exactly one default: set the chosen one, clear the rest.
+            foreach (var p in _pricelists)
+            {
+                var shouldBeDefault = p.PricelistId == pricelistId;
+                if (p.IsDefault != shouldBeDefault)
+                    await Mediator.Send(new AssignClientPricelistCommand(Id, p.PricelistId, shouldBeDefault));
+            }
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _pricelistError = ex.Message;
+        }
+        _pricelistBusy = false;
+    }
+
+    private async Task RemoveAsync(int clientPricelistId)
+    {
+        _pricelistError = "";
+        _pricelistBusy = true;
+        try
+        {
+            await Mediator.Send(new RemoveClientPricelistCommand(clientPricelistId));
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _pricelistError = ex.Message;
+        }
+        _pricelistBusy = false;
+    }
+
+    private static string Initials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Replace("—", " ").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0][..1].ToUpperInvariant();
+        return (parts[0][..1] + parts[^1][..1]).ToUpperInvariant();
     }
 }

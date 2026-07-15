@@ -1,0 +1,50 @@
+@namespace dWebShop.Admin.Components.Shared
+
+<div class="rte">
+    <BlazoredTextEditor @ref="_editor">
+        <ToolbarContent>
+            <span class="ql-formats">
+                <select class="ql-header">
+                    <option selected></option>
+                    <option value="2"></option>
+                    <option value="3"></option>
+                    <option value="4"></option>
+                </select>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-bold"></button>
+                <button class="ql-italic"></button>
+                <button class="ql-underline"></button>
+                <button class="ql-strike"></button>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-list" value="ordered"></button>
+                <button class="ql-list" value="bullet"></button>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-link"></button>
+                <button class="ql-blockquote"></button>
+                <button class="ql-code-block"></button>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-clean"></button>
+            </span>
+        </ToolbarContent>
+        <EditorContent>@((MarkupString)(Html ?? string.Empty))</EditorContent>
+    </BlazoredTextEditor>
+</div>
+
+@code {
+    private BlazoredTextEditor _editor = default!;
+
+    /// <summary>Initial HTML content. Read once when the editor initialises.</summary>
+    [Parameter] public string? Html { get; set; }
+
+    /// <summary>Returns the current editor content as HTML (empty string when blank).</summary>
+    public async Task<string> GetHtmlAsync()
+    {
+        var html = await _editor.GetHTML();
+        // Quill represents an empty document as "<p><br></p>" — normalise that to empty.
+        return html is null or "<p><br></p>" ? string.Empty : html;
+    }
+}

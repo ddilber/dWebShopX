@@ -11,10 +11,12 @@
         <meta property="og:title" content="@($"{_brand.Name} — {_brand.Tagline}")" />
         <meta property="og:description" content="@_brand.Desc" />
         <meta property="og:url" content="@canonical" />
+        @Seo.OgImageTags(null, _brand.Name)
         @Seo.JsonLd(new JsonObject {
             ["@type"] = "Brand",
             ["name"] = _brand.Name,
             ["url"] = canonical,
+            ["sameAs"] = _brand.Site,
             ["description"] = _brand.Desc,
             ["countryOfOrigin"] = _brand.Origin,
             ["foundingDate"] = _brand.Since
@@ -53,6 +55,17 @@ else
                     <div><span>Porijeklo</span><b>@_brand.Origin</b></div>
                     <div><span>Osnovano</span><b>@_brand.Since</b></div>
                     <div><span>Distribucija</span><b>BiH &middot; ASGifiks</b></div>
+                    <div>
+                        <span>Službena stranica</span>
+                        <b>
+                            <a class="bd-site" href="@_brand.Site" target="_blank" rel="noopener noreferrer">
+                                @SiteLabel(_brand.Site)
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M7 17 17 7M9 7h8v8" />
+                                </svg>
+                            </a>
+                        </b>
+                    </div>
                 </div>
             </div>
         </div>
@@ -102,7 +115,7 @@ else
                     <div class="asg-num" style="display:inline-block; margin-bottom:18px;">02 — Znanje &amp; inspiracija</div>
                     <h2 class="asg-h2">Članci, reference i sistemska rješenja.</h2>
                     <p class="asg-lede" style="margin-top:16px">
-                        Edukativni sadržaj, realizovani projekti i dizajn kolekcije za @_brand.Name portfolio.
+                        Edukativni sadržaj, realizirani projekti i dizajn kolekcije za @_brand.Name portfolio.
                     </p>
                 </div>
                 <div style="display:flex; flex-direction:column; gap:12px; align-items:flex-start;">
@@ -177,12 +190,12 @@ else
         <div class="asg-wrap">
             <div style="display:grid; grid-template-columns:2fr 1fr; gap:64px; align-items:center;">
                 <div>
-                    <h2 style="font-size:clamp(36px,4.5vw,64px); line-height:1; letter-spacing:-.025em; font-weight:700; margin:0; color:var(--asg-paper);">
-                        Spreman si <em style="font-style:normal; color:var(--asg-slate);">specificirati</em> sistem?
-                    </h2>
-                    <p style="color:rgba(244,241,234,.7); font-size:17px; margin:16px 0 0; max-width:48ch;">
-                        Pošalji nam tlocrt ili kratak opis projekta — vraćamo se u 24h.
-                    </p>
+                        <h2 style="font-size:clamp(36px,4.5vw,64px); line-height:1; letter-spacing:-.025em; font-weight:700; margin:0; color:var(--asg-paper);">
+                            Imate <em style="font-style:normal; color:var(--asg-slate);">projekt</em>?
+                        </h2>
+                        <p style="color:rgba(244,241,234,.7); font-size:17px; margin:16px 0 0; max-width:48ch;">
+                            Pošaljite nam troškovnik za Sto sustave ili DWG detalje za Xypex hidroizolaciju. Pripremit ćemo ponudu, potrebnu tehničku dokumentaciju i, kada je potrebno, zatražiti podršku proizvođača.
+                        </p>
                 </div>
                 <div style="display:flex; flex-direction:column; gap:12px;">
                     <a href="/contact" class="asg-btn asg-btn-pri">
@@ -225,6 +238,11 @@ else
     .bd-prod .name { font-size: 18px; font-weight: 500; letter-spacing: -.01em; }
     .bd-prod .arr { color: var(--asg-accent); }
 
+    .bd-site { display: inline-flex; align-items: center; gap: 5px; color: inherit;
+        text-decoration: none; border-bottom: 1px solid var(--asg-accent); transition: color .2s; }
+    .bd-site:hover { color: var(--asg-accent); text-decoration: none; }
+    .bd-site svg { flex-shrink: 0; }
+
     .other-brand { padding: 32px; border: 1px solid var(--asg-line); text-decoration: none; color: inherit;
         display: flex; justify-content: space-between; align-items: center; transition: border-color .2s; }
     .other-brand:hover { border-color: var(--asg-accent); text-decoration: none; color: inherit; }
@@ -248,12 +266,19 @@ else
     private record Stat(string N, string L);
     private record Why(string T, string D);
     private record BrandData(string Key, string Name, string Origin, string Since, string Tagline, string Desc,
-        Stat[] Stats, Why[] Why, string[] Products);
+        string Site, Stat[] Stats, Why[] Why, string[] Products);
+
+    // "https://www.sto.de/s/" -> "sto.de"
+    private static string SiteLabel(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var u)
+            ? u.Host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? u.Host[4..] : u.Host
+            : url;
 
     private static readonly BrandData[] _allBrands =
     [
         new("sto", "STO", "Njemačka", "1955", "Fasadni sistemi i toplinska izolacija",
             "Svjetski lider u fasadnim sistemima i toplinskoj izolaciji. Inovativna rješenja za energetsku efikasnost objekata u skladu sa europskim standardima.",
+            "https://www.sto.de/s/",
             [new("70+","godina iskustva"), new("5,500","zaposlenih u svijetu"), new("37","zemalja distribucije"), new("#1","u ETICS sistemima")],
             [new("Sistemska rješenja","Kompletan portfolio od izolacijske ploče do završnog premaza, garantovano kao jedinstven sistem."),
              new("Energetska efikasnost","Materijali koji značajno smanjuju toplinske gubitke i troškove grijanja."),
@@ -262,6 +287,7 @@ else
 
         new("xypex", "XYPEX", "Kanada", "1969", "Kristalna hidroizolacija betona",
             "Revolucionarna kristalna tehnologija koja pretvara beton u trajno hidroizolirani materijal. Aktivira se u kontaktu sa vodom i ponovo zatvara mikropukotine.",
+            "https://www.xypex.com/",
             [new("55+","godina razvoja"), new("90+","zemalja primjene"), new("1B+","m³ obrađenog betona"), new("∞","životni vijek")],
             [new("Trajna zaštita","Kristali rastu unutar betona i postaju sastavni dio strukture — ne ljušte se i ne troše."),
              new("Samosanacija","U prisustvu vlage zatvara pukotine do 0.4 mm i nakon godina od ugradnje."),
@@ -270,6 +296,7 @@ else
 
         new("cortec", "CORTEC", "SAD", "1977", "Zaštita od korozije — VpCI tehnologija",
             "Globalni lider u zaštiti metala od korozije pomoću isparljivih inhibitora (VpCI) — bez teških metala, ekološki prihvatljivo, primjenjivo u zatvorenim prostorima i na otvorenom.",
+            "https://www.cortecvci.com/",
             [new("45+","godina inovacije"), new("450+","patenata"), new("70+","zemalja"), new("100%","biorazgradljivo")],
             [new("Ekološki održivo","Bez nitrita, fosfata i teških metala. Sigurno za radnike, okolinu i krajnje korisnike."),
              new("Pasivna zaštita","VpCI molekuli isparavaju i formiraju zaštitni film — nije potrebno premazivati svaki ćošak."),

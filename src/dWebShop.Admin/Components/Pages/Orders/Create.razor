@@ -111,7 +111,7 @@
                                 <div class="oi-sub"><span class="oi-mono">@it.SkuCode</span></div>
                             </div>
                             <div class="oi-qty">×@((int)it.Quantity)</div>
-                            <div class="oi-price">@it.LineTotal.ToString("C2")</div>
+                            <div class="oi-price">@AdminFormat.Money(it.LineTotal)</div>
                             <button class="co-remove-btn" @onclick="@(() => RemoveItem(it))" title="Remove">
                                 <FluentIcon Value="@(new Icons.Regular.Size16.Dismiss())" />
                             </button>
@@ -120,10 +120,10 @@
                 </div>
 
                 <div class="order-totals">
-                    <div><span>Subtotal</span><span>@_lineItems.Sum(i => i.LineTotal).ToString("C2")</span></div>
+                    <div><span>Subtotal</span><span>@AdminFormat.Money(_lineItems.Sum(i => i.LineTotal))</span></div>
                     <div class="grand">
                         <span>Total</span>
-                        <span>@_lineItems.Sum(i => i.LineTotal).ToString("C2")</span>
+                        <span>@AdminFormat.Money(_lineItems.Sum(i => i.LineTotal))</span>
                     </div>
                 </div>
             }

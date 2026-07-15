@@ -1,0 +1,97 @@
+@page "/pricelists/new"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using MediatR
+@using dWebShop.Application.Features.Pricelists.Commands
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+
+<PageTitle>New Pricelist — dWebShop Admin</PageTitle>
+
+<div class="admin-page-head">
+    <div>
+        <nav class="admin-breadcrumb">
+            <a href="/pricelists">Commerce</a> › <a href="/pricelists">Pricelists</a> › New pricelist
+        </nav>
+        <h1 class="admin-page-title">Create pricelist</h1>
+        <p class="admin-page-sub">A pricelist holds custom SKU prices you can assign to specific clients.</p>
+    </div>
+    <div class="admin-page-actions">
+        <FluentButton Appearance="ButtonAppearance.Transparent"
+                      IconStart="@(new Icons.Regular.Size16.Dismiss())"
+                      OnClick="@(() => Navigation.NavigateTo("/pricelists"))">Discard</FluentButton>
+        <FluentButton Appearance="ButtonAppearance.Primary"
+                      IconStart="@(new Icons.Regular.Size16.Checkmark())"
+                      Disabled="@_saving"
+                      OnClick="SaveAsync">
+            @if (_saving) { <span>Creating…</span> } else { <span>Create pricelist</span> }
+        </FluentButton>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <FluentMessageBar Intent="MessageBarIntent.Error" Style="margin-bottom: 16px;">@_error</FluentMessageBar>
+}
+
+<div style="max-width: 640px;">
+    <FluentCard>
+        <div class="order-card-title" style="margin-bottom: 16px;">Details</div>
+
+        <div class="pl-form-grid">
+            <div class="pl-field">
+                <label class="co-label" for="pl-name">Name</label>
+                <input id="pl-name" class="co-input" @bind="_name" @bind:event="oninput"
+                       placeholder="e.g. Wholesale 2026" />
+                <div class="pl-hint">Shown when assigning the pricelist to a client.</div>
+            </div>
+
+            <div class="pl-field">
+                <label class="co-label" for="pl-desc">Description</label>
+                <textarea id="pl-desc" class="co-textarea" rows="3" @bind="_description"
+                          placeholder="Optional — what this pricelist is for."></textarea>
+            </div>
+
+            <div class="pl-field">
+                <label class="co-label">Status</label>
+                <label class="pl-toggle">
+                    <input type="checkbox" @bind="_isActive" />
+                    <span>Active</span>
+                </label>
+                <div class="pl-hint">Inactive pricelists are ignored when pricing client orders.</div>
+            </div>
+        </div>
+    </FluentCard>
+</div>
+
+@code {
+    private string _name = "";
+    private string _description = "";
+    private bool _isActive = true;
+    private string _error = "";
+    private bool _saving;
+
+    private async Task SaveAsync()
+    {
+        _error = "";
+
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            _error = "Name is required.";
+            return;
+        }
+
+        _saving = true;
+
+        try
+        {
+            var id = await Mediator.Send(new CreatePricelistCommand(_name, _description, _isActive));
+            Navigation.NavigateTo($"/pricelists/{id}");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            _saving = false;
+        }
+    }
+}

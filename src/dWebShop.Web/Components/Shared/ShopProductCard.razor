@@ -10,7 +10,7 @@
             <span class="dot" style="background:@stockColor"></span>
             @stockLabel
         </span>
-        @if (!string.IsNullOrEmpty(Product.PrimaryImagePath))
+        @if (ShopFormatting.HasRealImage(Product.PrimaryImagePath))
         {
             <img src="@Product.PrimaryImagePath" alt="@Product.Name" loading="lazy" />
         }
@@ -22,7 +22,8 @@
     <div class="asg-pcard-body">
         <div class="asg-pcard-cat">@(Product.CategoryName ?? "")</div>
         <h4>@Product.Name</h4>
-        <p>@Product.Short</p>
+        @* Short may contain stored HTML — flatten to text; CSS clamps it to 2 lines. *@
+        <p>@Seo.PlainText(Product.Short, 0)</p>
         <div class="asg-pcard-foot">
             <div class="asg-pcard-price">
                 <span class="from">Cijena od</span>

@@ -15,14 +15,16 @@
     var _canonical = $"https://asgifiks.ba/shop/p/{_product.Slug}";
     var _brandUrl = $"https://asgifiks.ba/brands/{_product.BrandSlug}";
     var _catUrl = $"https://asgifiks.ba/shop/{_product.BrandSlug}/{_product.CategorySlug}";
+    var _ogImageRel = ShopFormatting.RealImageOrNull(_product.PrimaryImagePath);
 
     <HeadContent>
         <link rel="canonical" href="@_canonical" />
-        <meta name="description" content="@_product.Short" />
+        <meta name="description" content="@Seo.PlainText(_product.Short, 160)" />
         <meta property="og:title" content="@($"{_product.Name} — {_product.BrandName ?? _product.BrandSlug}")" />
-        <meta property="og:description" content="@_product.Short" />
+        <meta property="og:description" content="@Seo.PlainText(_product.Short, 200)" />
         <meta property="og:url" content="@_canonical" />
         <meta property="og:type" content="product" />
+        @Seo.OgImageTags(_ogImageRel, _product.Name)
         @{
             var offers = _product.Skus.Count == 1
                 ? (JsonNode)new JsonObject {
@@ -47,13 +49,14 @@
             var productLd = new JsonObject {
                 ["@type"] = "Product",
                 ["name"] = _product.Name,
-                ["description"] = _product.Desc,
+                ["description"] = Seo.PlainText(_product.Desc, 0),
                 ["sku"] = _product.Slug,
                 ["category"] = _product.CategoryName,
                 ["brand"] = new JsonObject { ["@type"] = "Brand", ["name"] = _product.BrandName ?? _product.BrandSlug },
                 ["url"] = _canonical,
                 ["offers"] = offers
             };
+            if (_ogImageRel is not null) productLd["image"] = Seo.OgImage(_ogImageRel);
         }
         @Seo.JsonLd(productLd)
         @Seo.JsonLd(new JsonObject {
@@ -89,12 +92,13 @@ else
     // the product's general images. De-duplicate so we don't show the same
     // path twice when the SKU's image is also one of the general ones.
     var galleryImages = new List<(string Path, string Description)>();
-    if (currentSku is not null && !string.IsNullOrWhiteSpace(currentSku.ImagePath))
+    if (currentSku is not null && ShopFormatting.HasRealImage(currentSku.ImagePath))
     {
         galleryImages.Add((currentSku.ImagePath!, _product.Name));
     }
     foreach (var img in _detail!.Images)
     {
+        if (!ShopFormatting.HasRealImage(img.Path)) continue;
         if (galleryImages.Any(g => string.Equals(g.Path, img.Path, StringComparison.OrdinalIgnoreCase))) continue;
         galleryImages.Add((img.Path, string.IsNullOrWhiteSpace(img.Description) ? _product.Name : img.Description));
     }
@@ -145,7 +149,7 @@ else
                 <div class="asg-pdp-info">
                     <div class="asg-eyebrow"><span class="dot"></span><span>@(_product.BrandName) · @(_product.CategoryName)</span></div>
                     <h1>@_product.Name</h1>
-                    <p>@_product.Short</p>
+                    <div class="asg-pdp-lede">@((MarkupString)_product.Short)</div>
 
                     @if (_product.Tags.Count > 0)
                     {
@@ -242,7 +246,7 @@ else
             <div class="asg-pdp-body">
                 <div>
                     <h3>01 / Opis proizvoda</h3>
-                    <div class="asg-pdp-desc">@_product.Desc</div>
+                    <div class="asg-pdp-desc">@((MarkupString)_product.Desc)</div>
                 </div>
                 <div>
                     @{
@@ -474,7 +478,7 @@ else
                 Quantity: _qty,
                 Price: sku.Price,
                 Tax: 0m,
-                ImagePath: _product.PrimaryImagePath));
+                ImagePath: ShopFormatting.RealImageOrNull(_product.PrimaryImagePath)));
 
             _added = true;
         }

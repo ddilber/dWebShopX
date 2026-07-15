@@ -10,7 +10,7 @@ public static class InspirationData
         new Dictionary<InspirationContentType, ContentTypeInfo>
         {
             [InspirationContentType.Story]      = new("Priča",     "Priče",     "Edukativni i inspiracijski članci"),
-            [InspirationContentType.Reference]  = new("Referenca", "Reference", "Realizovani projekti sa fotografijama"),
+            [InspirationContentType.Reference]  = new("Referenca", "Reference", "Realizirani projekti sa fotografijama"),
             [InspirationContentType.Collection] = new("Kolekcija", "Kolekcije", "Sistemska rješenja i dizajn linije"),
         };
 }

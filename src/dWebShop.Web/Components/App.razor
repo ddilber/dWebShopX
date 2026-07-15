@@ -8,15 +8,15 @@
     <meta name="description" content="ASGifiks — ovlašteni distributer STO, XYPEX i CORTEC sistema za BiH. Fasadni sistemi, kristalna hidroizolacija betona i antikorozivna zaštita. Tomislavgrad, od 1998." />
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1" />
     <meta name="theme-color" content="#00335E" />
-    <meta property="og:type" content="website" />
     <meta property="og:site_name" content="A&amp;S GIFIKS" />
     <meta property="og:locale" content="bs_BA" />
-    <meta property="og:image" content="/images/asgifiks_building.jpeg" />
-    <meta property="og:image:alt" content="ASGifiks — fasadni sistemi" />
     <meta name="twitter:card" content="summary_large_image" />
+    @* og:type and og:image are set per-page (see Seo.OgImageTags) so social
+       crawlers get exactly one, page-specific image. Pages that omit og:type
+       are treated as "website" by default. *@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="@Assets["css/app.css"]" />
     <link rel="stylesheet" href="@Assets["css/landing.css"]" />
     <link rel="stylesheet" href="@Assets["css/brand-pages.css"]" />
@@ -35,6 +35,8 @@
     <Routes />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
+    <!-- DEV-ONLY: live font preview panel. Remove this line + wwwroot/js/font-switcher.js to disable. -->
+    @* <script src="@Assets["js/font-switcher.js"]"></script> *@
     <script>
         window.scrollToTop = function() { window.scrollTo({ top: 0, behavior: "instant" }); };
 

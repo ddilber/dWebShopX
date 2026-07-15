@@ -957,6 +957,21 @@ button { font-family: inherit; }
     align-items: center;
     gap: 10px;
     min-width: 0;
+    padding: 4px 0;
+}
+/* Constrain the text block so the name/email truncate instead of
+   overflowing the column and bleeding into the next row. */
+.order-customer-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.35;
+}
+.order-customer-name {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .order-avatar {
     display: inline-flex;
@@ -1279,6 +1294,143 @@ button { font-family: inherit; }
     display: flex; align-items: center; gap: 8px;
     padding: 12px 16px; border-top: 1px solid var(--colorNeutralStroke1);
 }
+
+/* ── Pricelist form ──────────────────────────────────────── */
+.pl-form-grid { display: flex; flex-direction: column; gap: 18px; }
+.pl-form-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.pl-form-row > .pl-field { flex: 1 1 200px; }
+.pl-field { display: flex; flex-direction: column; gap: 6px; }
+.pl-hint { font-size: 12px; color: var(--colorNeutralForeground3); }
+.pl-toggle {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--colorNeutralForeground1); cursor: pointer;
+    user-select: none;
+}
+.pl-toggle input { width: 16px; height: 16px; cursor: pointer; }
+
+/* Checkbox lists (categories / tags) */
+.pl-check-list { display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow-y: auto; }
+.pl-check {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px; border-radius: 6px;
+    font-size: 13px; cursor: pointer; user-select: none;
+}
+.pl-check:hover { background: var(--colorNeutralBackground3); }
+.pl-check input { width: 15px; height: 15px; cursor: pointer; }
+.pl-add-row {
+    display: flex; gap: 8px; align-items: center;
+    margin-top: 12px; padding-top: 12px;
+    border-top: 1px solid var(--colorNeutralStroke2);
+}
+.pl-add-row .co-input { flex: 1; }
+.pl-add-error { color: var(--colorStatusDangerForeground1, #c50f1f); font-size: 12px; margin-top: 6px; }
+
+/* Taxonomy management list */
+.pl-tax-list { margin-top: 16px; display: flex; flex-direction: column; }
+.pl-tax-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 4px; border-bottom: 1px solid var(--colorNeutralStroke2);
+    font-size: 13px;
+}
+.pl-tax-row:last-child { border-bottom: none; }
+.pl-tax-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-confirm { font-size: 12px; color: var(--colorNeutralForeground2); }
+.pl-link-danger { color: var(--colorStatusDangerForeground1, #c50f1f); font-weight: 600; }
+
+/* Badges */
+.pl-badge {
+    display: inline-flex; align-items: center;
+    padding: 2px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; line-height: 18px;
+}
+.pl-badge-active   { background: #dff6dd; color: #107c10; }
+.pl-badge-inactive { background: #f0f0f0; color: #616161; }
+.pl-badge-default  { background: #eef2fb; color: #0f6cbd; margin-left: auto; }
+
+/* Item list */
+.pl-items { margin-top: 16px; display: flex; flex-direction: column; }
+.pl-items-head,
+.pl-item-row {
+    display: grid;
+    grid-template-columns: minmax(90px, 1fr) minmax(120px, 2fr) 90px 80px 28px;
+    align-items: center; gap: 10px;
+    padding: 8px 4px;
+}
+.pl-items-head {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .03em; color: var(--colorNeutralForeground3);
+    border-bottom: 1px solid var(--colorNeutralStroke2);
+}
+.pl-item-row { border-bottom: 1px solid var(--colorNeutralStroke2); font-size: 13px; }
+.pl-item-row:last-child { border-bottom: none; }
+.pl-mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 12px; }
+.pl-item-name { color: var(--colorNeutralForeground1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-num { text-align: right; font-variant-numeric: tabular-nums; }
+.pl-muted { color: var(--colorNeutralForeground3); }
+
+/* Assigned clients */
+.pl-clients { display: flex; flex-direction: column; gap: 4px; }
+.pl-client-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 6px; border-radius: 6px; font-size: 13px;
+}
+.pl-client-row:hover { background: var(--colorNeutralBackground3); }
+.pl-avatar {
+    flex-shrink: 0;
+    width: 26px; height: 26px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #eef2fb; color: #0f6cbd;
+    font-size: 11px; font-weight: 600;
+}
+.pl-avatar-lg { width: 36px; height: 36px; font-size: 14px; }
+.pl-client-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-side-empty {
+    padding: 16px; border: 1px dashed var(--colorNeutralStroke2);
+    border-radius: 6px; text-align: center;
+    font-size: 12px; color: var(--colorNeutralForeground3);
+}
+
+/* Assigned-pricelist rows (client page) */
+.pl-assign-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 6px; border-radius: 6px; font-size: 13px;
+}
+.pl-assign-row:hover { background: var(--colorNeutralBackground3); }
+.pl-assign-row .pl-client-name {
+    flex: 1; min-width: 0;
+    color: var(--colorNeutralForeground1); text-decoration: none;
+}
+.pl-assign-row .pl-client-name:hover { text-decoration: underline; }
+.pl-assign-row .pl-badge-default { margin-left: 0; }
+.pl-link-btn {
+    background: none; border: none; padding: 0;
+    font: inherit; font-size: 12px;
+    color: var(--colorBrandForeground1, #0f6cbd);
+    cursor: pointer; white-space: nowrap;
+}
+.pl-link-btn:hover { text-decoration: underline; }
+.pl-link-btn:disabled { opacity: .5; cursor: default; text-decoration: none; }
+
+/* ── Rich text editor (Quill / Blazored.TextEditor) ──────── */
+.rte { display: flex; flex-direction: column; }
+.rte .ql-toolbar.ql-snow,
+.rte .ql-container.ql-snow {
+    border-color: var(--colorNeutralStroke1);
+}
+.rte .ql-toolbar.ql-snow {
+    border-top-left-radius: 6px; border-top-right-radius: 6px;
+    background: var(--colorNeutralBackground2, #fafafa);
+}
+.rte .ql-container.ql-snow {
+    border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;
+    font-family: inherit; font-size: 14px;
+}
+.rte .ql-editor {
+    min-height: 240px;
+    max-height: 560px;
+    overflow-y: auto;
+}
+.rte .ql-editor.ql-blank::before { color: var(--colorNeutralForeground3); font-style: normal; }
 
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 960px) {

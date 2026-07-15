@@ -13,6 +13,7 @@
 @inject IConfiguration Configuration
 @inject IAppDbContext Db
 @inject NavigationManager Navigation
+@inject ILogger<Register> Logger
 
 <PageTitle>Registracija — Web Shop</PageTitle>
 
@@ -134,7 +135,10 @@
             {
                 await EmailService.SendRegistrationNotificationToAdminAsync(adminEmail, Input.Email, $"{Input.FirstName} {Input.LastName}");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to send registration notification email to admin {AdminEmail} for new user {UserEmail}", adminEmail, Input.Email);
+            }
 
             Navigation.NavigateTo("/register-success", forceLoad: true);
             return;

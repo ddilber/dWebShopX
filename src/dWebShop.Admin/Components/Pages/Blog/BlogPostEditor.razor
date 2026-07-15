@@ -1,0 +1,253 @@
+@using dWebShop.Application.Features.Blog.Queries
+@using dWebShop.Application.Features.Blog.Commands
+@inject MediatR.IMediator Mediator
+
+<div class="admin-detail-grid">
+
+    @* ── Left: content ─────────────────────────────────── *@
+    <div class="admin-detail-main">
+        <FluentCard>
+            <div class="order-card-title" style="margin-bottom: 16px;">Post</div>
+            <div class="pl-form-grid">
+                <div class="pl-field">
+                    <label class="co-label" for="bp-title">Title</label>
+                    <input id="bp-title" class="co-input" value="@Model.Title"
+                           @oninput="OnTitleInput" placeholder="Post headline" />
+                </div>
+                <div class="pl-field">
+                    <label class="co-label" for="bp-slug">Slug</label>
+                    <input id="bp-slug" class="co-input" value="@Model.Slug"
+                           @oninput="OnSlugInput" placeholder="post-url-slug" />
+                    <div class="pl-hint">
+                        Lowercase letters, numbers and hyphens.
+                        @if (!string.IsNullOrWhiteSpace(Model.Slug)) { <span>URL: /blog/@Model.Slug</span> }
+                    </div>
+                </div>
+                <div class="pl-field">
+                    <label class="co-label" for="bp-summary">Summary</label>
+                    <textarea id="bp-summary" class="co-textarea" rows="2" @bind="Model.Summary"
+                              placeholder="Short teaser shown in listings."></textarea>
+                </div>
+            </div>
+        </FluentCard>
+
+        <FluentCard>
+            <div class="order-card-title" style="margin-bottom: 16px;">Content</div>
+            <RichTextEditor @ref="_contentEditor" Html="@Model.Content" />
+        </FluentCard>
+
+        <FluentCard>
+            <div class="order-card-title" style="margin-bottom: 16px;">SEO</div>
+            <div class="pl-form-grid">
+                <div class="pl-field">
+                    <label class="co-label" for="bp-metatitle">Meta title</label>
+                    <input id="bp-metatitle" class="co-input" @bind="Model.MetaTitle"
+                           placeholder="Falls back to the post title if empty." />
+                </div>
+                <div class="pl-field">
+                    <label class="co-label" for="bp-metadesc">Meta description</label>
+                    <textarea id="bp-metadesc" class="co-textarea" rows="2" @bind="Model.MetaDescription"
+                              placeholder="Summary shown in search results."></textarea>
+                </div>
+            </div>
+        </FluentCard>
+    </div>
+
+    @* ── Right: publish + organize ─────────────────────── *@
+    <div class="admin-detail-side">
+        <FluentCard>
+            <div class="order-card-title" style="margin-bottom: 12px;">Visibility</div>
+            <label class="pl-toggle">
+                <input type="checkbox" @bind="Model.Published" />
+                <span>Published</span>
+            </label>
+            <div class="pl-hint" style="margin-top: 8px;">
+                @(Model.Published ? "Visible on the public blog." : "Saved as a draft — hidden from visitors.")
+            </div>
+        </FluentCard>
+
+        <FluentCard>
+            <div class="order-card-title" style="margin-bottom: 12px;">Categories</div>
+            @if (AllCategories.Count > 0)
+            {
+                <div class="pl-check-list">
+                    @foreach (var c in AllCategories)
+                    {
+                        var cat = c;
+                        <label class="pl-check">
+                            <input type="checkbox" checked="@Model.CategoryIds.Contains(cat.Id)"
+                                   @onchange="e => ToggleCategory(cat.Id, (bool)e.Value!)" />
+                            <span>@cat.Name</span>
+                        </label>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="pl-side-empty" style="margin-bottom: 10px;">No categories defined yet.</div>
+            }
+
+            <div class="pl-add-row">
+                <input class="co-input" placeholder="New category…" value="@_newCategory"
+                       @oninput="e => _newCategory = e.Value?.ToString() ?? string.Empty"
+                       @onkeydown="OnCategoryKeyDown" />
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              IconStart="@(new Icons.Regular.Size16.Add())"
+                              Disabled="@(string.IsNullOrWhiteSpace(_newCategory) || _busy)"
+                              OnClick="AddCategoryAsync" />
+            </div>
+            @if (!string.IsNullOrEmpty(_categoryError))
+            {
+                <div class="pl-add-error">@_categoryError</div>
+            }
+        </FluentCard>
+
+        <FluentCard>
+            <div class="order-card-title" style="margin-bottom: 12px;">Tags</div>
+            @if (AllTags.Count > 0)
+            {
+                <div class="pl-check-list">
+                    @foreach (var t in AllTags)
+                    {
+                        var tag = t;
+                        <label class="pl-check">
+                            <input type="checkbox" checked="@Model.TagIds.Contains(tag.Id)"
+                                   @onchange="e => ToggleTag(tag.Id, (bool)e.Value!)" />
+                            <span>@tag.Name</span>
+                        </label>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="pl-side-empty" style="margin-bottom: 10px;">No tags defined yet.</div>
+            }
+
+            <div class="pl-add-row">
+                <input class="co-input" placeholder="New tag…" value="@_newTag"
+                       @oninput="e => _newTag = e.Value?.ToString() ?? string.Empty"
+                       @onkeydown="OnTagKeyDown" />
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              IconStart="@(new Icons.Regular.Size16.Add())"
+                              Disabled="@(string.IsNullOrWhiteSpace(_newTag) || _busy)"
+                              OnClick="AddTagAsync" />
+            </div>
+            @if (!string.IsNullOrEmpty(_tagError))
+            {
+                <div class="pl-add-error">@_tagError</div>
+            }
+        </FluentCard>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PostEditModel Model { get; set; } = default!;
+    [Parameter] public List<PostCategoryDto> AllCategories { get; set; } = new();
+    [Parameter] public List<PostTagDto> AllTags { get; set; } = new();
+
+    private RichTextEditor _contentEditor = default!;
+    private bool _slugTouched;
+
+    /// <summary>Flush the rich editor's HTML into the model. Call before saving.</summary>
+    public async Task ApplyAsync()
+    {
+        Model.Content = await _contentEditor.GetHtmlAsync();
+    }
+
+    private string _newCategory = "";
+    private string _newTag = "";
+    private string _categoryError = "";
+    private string _tagError = "";
+    private bool _busy;
+
+    protected override void OnParametersSet()
+    {
+        // For an existing post the slug is pre-filled, so don't auto-overwrite it.
+        if (!string.IsNullOrWhiteSpace(Model.Slug)) _slugTouched = true;
+    }
+
+    private void OnTitleInput(ChangeEventArgs e)
+    {
+        Model.Title = e.Value?.ToString() ?? "";
+        if (!_slugTouched)
+            Model.Slug = SlugHelper.Slugify(Model.Title);
+    }
+
+    private void OnSlugInput(ChangeEventArgs e)
+    {
+        _slugTouched = true;
+        Model.Slug = SlugHelper.Slugify(e.Value?.ToString() ?? "");
+    }
+
+    private void ToggleCategory(int id, bool selected)
+    {
+        if (selected) Model.CategoryIds.Add(id); else Model.CategoryIds.Remove(id);
+    }
+
+    private void ToggleTag(int id, bool selected)
+    {
+        if (selected) Model.TagIds.Add(id); else Model.TagIds.Remove(id);
+    }
+
+    private async Task OnCategoryKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await AddCategoryAsync();
+    }
+
+    private async Task OnTagKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await AddTagAsync();
+    }
+
+    private async Task AddCategoryAsync()
+    {
+        _categoryError = "";
+        var name = _newCategory.Trim();
+        if (string.IsNullOrWhiteSpace(name) || _busy) return;
+
+        var slug = SlugHelper.Slugify(name);
+        if (string.IsNullOrEmpty(slug)) { _categoryError = "Enter a name with letters or numbers."; return; }
+        if (AllCategories.Any(c => c.Slug == slug)) { _categoryError = "That category already exists."; return; }
+
+        _busy = true;
+        try
+        {
+            var id = await Mediator.Send(new CreatePostCategoryCommand(name, slug));
+            AllCategories.Add(new PostCategoryDto(id, name, slug));
+            AllCategories.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+            Model.CategoryIds.Add(id);
+            _newCategory = "";
+        }
+        catch (Exception ex)
+        {
+            _categoryError = ex.Message;
+        }
+        _busy = false;
+    }
+
+    private async Task AddTagAsync()
+    {
+        _tagError = "";
+        var name = _newTag.Trim();
+        if (string.IsNullOrWhiteSpace(name) || _busy) return;
+
+        var slug = SlugHelper.Slugify(name);
+        if (string.IsNullOrEmpty(slug)) { _tagError = "Enter a name with letters or numbers."; return; }
+        if (AllTags.Any(t => t.Slug == slug)) { _tagError = "That tag already exists."; return; }
+
+        _busy = true;
+        try
+        {
+            var id = await Mediator.Send(new CreatePostTagCommand(name, slug));
+            AllTags.Add(new PostTagDto(id, name, slug));
+            AllTags.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+            Model.TagIds.Add(id);
+            _newTag = "";
+        }
+        catch (Exception ex)
+        {
+            _tagError = ex.Message;
+        }
+        _busy = false;
+    }
+}

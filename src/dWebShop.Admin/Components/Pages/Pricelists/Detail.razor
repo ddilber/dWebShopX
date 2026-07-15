@@ -1,0 +1,324 @@
+@page "/pricelists/{Id:int}"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using MediatR
+@using dWebShop.Application.Features.Pricelists.Commands
+@using dWebShop.Application.Features.Pricelists.Queries
+@using dWebShop.Application.Features.ProductSkus.Queries
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+
+<PageTitle>Edit Pricelist — dWebShop Admin</PageTitle>
+
+@if (_loading)
+{
+    <FluentProgressRing />
+}
+else if (_notFound)
+{
+    <FluentMessageBar Intent="MessageBarIntent.Error">Pricelist not found.</FluentMessageBar>
+}
+else
+{
+    <div class="admin-page-head">
+        <div>
+            <nav class="admin-breadcrumb">
+                <a href="/pricelists">Commerce</a> › <a href="/pricelists">Pricelists</a> › @_name
+            </nav>
+            <div class="admin-detail-title-row">
+                <h1 class="admin-page-title">@_name</h1>
+                <span class="pl-badge @(_isActive ? "pl-badge-active" : "pl-badge-inactive")">
+                    @(_isActive ? "Active" : "Inactive")
+                </span>
+            </div>
+            <p class="admin-page-sub">@_items.Count item@(_items.Count == 1 ? "" : "s") · @_clients.Count client@(_clients.Count == 1 ? "" : "s")</p>
+        </div>
+        <div class="admin-page-actions">
+            <FluentButton Appearance="ButtonAppearance.Transparent"
+                          IconStart="@(new Icons.Regular.Size16.ArrowLeft())"
+                          OnClick="@(() => Navigation.NavigateTo("/pricelists"))">Back</FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Primary"
+                          IconStart="@(new Icons.Regular.Size16.Checkmark())"
+                          Disabled="@_saving"
+                          OnClick="SaveAsync">
+                @if (_saving) { <span>Saving…</span> } else { <span>Save changes</span> }
+            </FluentButton>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <FluentMessageBar Intent="MessageBarIntent.Error" Style="margin-bottom: 16px;">@_error</FluentMessageBar>
+    }
+    @if (!string.IsNullOrEmpty(_success))
+    {
+        <FluentMessageBar Intent="MessageBarIntent.Success" Style="margin-bottom: 16px;">@_success</FluentMessageBar>
+    }
+
+    <div class="admin-detail-grid">
+
+        @* ── Left: details + items ─────────────────────────── *@
+        <div class="admin-detail-main">
+
+            <FluentCard>
+                <div class="order-card-title" style="margin-bottom: 16px;">Details</div>
+                <div class="pl-form-grid">
+                    <div class="pl-field">
+                        <label class="co-label" for="pl-name">Name</label>
+                        <input id="pl-name" class="co-input" @bind="_name" @bind:event="oninput" />
+                    </div>
+                    <div class="pl-field">
+                        <label class="co-label" for="pl-desc">Description</label>
+                        <textarea id="pl-desc" class="co-textarea" rows="3" @bind="_description"
+                                  placeholder="Optional — what this pricelist is for."></textarea>
+                    </div>
+                    <div class="pl-field">
+                        <label class="co-label">Status</label>
+                        <label class="pl-toggle">
+                            <input type="checkbox" @bind="_isActive" />
+                            <span>Active</span>
+                        </label>
+                    </div>
+                </div>
+            </FluentCard>
+
+            <FluentCard>
+                <div class="order-card-title" style="margin-bottom: 16px;">Items</div>
+
+                @* Add-item picker *@
+                <div class="co-picker-row">
+                    <div class="co-picker-field" style="flex: 2 1 240px;">
+                        <label class="co-label">SKU</label>
+                        <select class="co-select" @onchange="OnSkuChanged" disabled="@(_skus is null)">
+                            <option value="">— select a SKU —</option>
+                            @if (_skus is not null)
+                            {
+                                @foreach (var s in _skus)
+                                {
+                                    var label = string.IsNullOrWhiteSpace(s.Name) ? s.SKU : $"{s.Name} — {s.SKU}";
+                                    <option value="@s.Id" selected="@(_selectedSkuId == s.Id)">@label</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="co-picker-field co-picker-price">
+                        <label class="co-label">Price (€)</label>
+                        <input type="number" class="co-input" min="0" step="0.01"
+                               @bind="_itemPrice" @bind:event="oninput" />
+                    </div>
+                    <div class="co-picker-field co-picker-price">
+                        <label class="co-label">Min qty</label>
+                        <input type="number" class="co-input" min="0" step="0.01" placeholder="—"
+                               @bind="_itemMinQty" @bind:event="oninput" />
+                    </div>
+                    <FluentButton Appearance="ButtonAppearance.Primary"
+                                  IconStart="@(new Icons.Regular.Size16.Add())"
+                                  Disabled="@(!_selectedSkuId.HasValue || _itemSaving)"
+                                  OnClick="AddItemAsync"
+                                  Style="align-self: flex-end; flex-shrink: 0;">Add</FluentButton>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_itemError))
+                {
+                    <div style="color: var(--colorStatusDangerForeground1, #c50f1f); font-size: 12px; margin-top: 6px;">@_itemError</div>
+                }
+
+                @* Item list *@
+                @if (_items.Count > 0)
+                {
+                    <div class="pl-items">
+                        <div class="pl-items-head">
+                            <span>SKU</span>
+                            <span>Product</span>
+                            <span class="pl-num">Price</span>
+                            <span class="pl-num">Min qty</span>
+                            <span></span>
+                        </div>
+                        @foreach (var item in _items)
+                        {
+                            var it = item;
+                            <div class="pl-item-row">
+                                <span class="pl-mono">@it.SkuCode</span>
+                                <span class="pl-item-name">@(string.IsNullOrWhiteSpace(it.SkuName) ? "—" : it.SkuName)</span>
+                                <span class="pl-num">€@it.Price.ToString("N2")</span>
+                                <span class="pl-num pl-muted">@(it.MinQuantity?.ToString("N2") ?? "—")</span>
+                                <button class="co-remove-btn" title="Remove item"
+                                        @onclick="@(() => DeleteItemAsync(it.Id))">
+                                    <FluentIcon Value="@(new Icons.Regular.Size16.Dismiss())" />
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="co-empty-items" style="margin-top: 16px;">
+                        No items yet. Pick a SKU above and set its price to add one.
+                    </div>
+                }
+            </FluentCard>
+
+        </div>
+
+        @* ── Right: assigned clients ───────────────────────── *@
+        <div class="admin-detail-side">
+
+            <FluentCard>
+                <div class="order-card-title" style="margin-bottom: 12px;">Assigned clients</div>
+                @if (_clients.Count > 0)
+                {
+                    <div class="pl-clients">
+                        @foreach (var c in _clients)
+                        {
+                            <div class="pl-client-row">
+                                <span class="pl-avatar">@Initials(c.PartnerName)</span>
+                                <span class="pl-client-name">@c.PartnerName</span>
+                                @if (c.IsDefault)
+                                {
+                                    <span class="pl-badge pl-badge-default">Default</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="pl-side-empty">
+                        No clients assigned yet. Assign this pricelist from a client's page.
+                    </div>
+                }
+            </FluentCard>
+
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private string _name = "";
+    private string _description = "";
+    private bool _isActive;
+    private string _error = "";
+    private string _success = "";
+    private bool _loading = true;
+    private bool _notFound;
+    private bool _saving;
+
+    private List<PricelistItemDto> _items = new();
+    private List<ClientPricelistDto> _clients = new();
+
+    private List<ProductSkuDto>? _skus;
+    private int? _selectedSkuId;
+    private decimal _itemPrice;
+    private decimal? _itemMinQty;
+    private string _itemError = "";
+    private bool _itemSaving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        if (!_notFound)
+        {
+            _skus = await Mediator.Send(new GetAllSkusQuery());
+        }
+        _loading = false;
+    }
+
+    private async Task LoadAsync()
+    {
+        var pl = await Mediator.Send(new GetPricelistByIdQuery(Id));
+        if (pl is null)
+        {
+            _notFound = true;
+            return;
+        }
+
+        _name = pl.Name;
+        _description = pl.Description;
+        _isActive = pl.IsActive;
+        _items = pl.Items;
+        _clients = pl.Clients;
+    }
+
+    private async Task SaveAsync()
+    {
+        _error = "";
+        _success = "";
+
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            _error = "Name is required.";
+            return;
+        }
+
+        _saving = true;
+
+        try
+        {
+            await Mediator.Send(new UpdatePricelistCommand(Id, _name, _description, _isActive));
+            _success = "Pricelist saved.";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+
+        _saving = false;
+    }
+
+    private void OnSkuChanged(ChangeEventArgs e)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out var skuId))
+        {
+            _selectedSkuId = null;
+            return;
+        }
+        _selectedSkuId = skuId;
+        var sku = _skus?.FirstOrDefault(s => s.Id == skuId);
+        if (sku is not null) _itemPrice = sku.Price;
+    }
+
+    private async Task AddItemAsync()
+    {
+        _itemError = "";
+        if (!_selectedSkuId.HasValue) return;
+
+        _itemSaving = true;
+        try
+        {
+            await Mediator.Send(new UpsertPricelistItemCommand(null, Id, _selectedSkuId.Value, _itemPrice, _itemMinQty));
+            _selectedSkuId = null;
+            _itemPrice = 0;
+            _itemMinQty = null;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _itemError = ex.Message;
+        }
+        _itemSaving = false;
+    }
+
+    private static string Initials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0][..1].ToUpperInvariant();
+        return (parts[0][..1] + parts[^1][..1]).ToUpperInvariant();
+    }
+
+    private async Task DeleteItemAsync(int itemId)
+    {
+        _itemError = "";
+        try
+        {
+            await Mediator.Send(new DeletePricelistItemCommand(itemId));
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _itemError = ex.Message;
+        }
+    }
+}

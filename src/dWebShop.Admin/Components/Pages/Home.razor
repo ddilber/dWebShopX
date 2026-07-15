@@ -72,7 +72,7 @@ else
                         @IcoMoney
                     </span>
                 </div>
-                <div class="kpi-value">$48,392</div>
+                <div class="kpi-value">48,392 KM</div>
                 <div class="kpi-delta up">+12.4% <span class="kpi-period">vs last month</span></div>
             </div>
         </div>
@@ -150,25 +150,25 @@ else
                     <span class="ch-dot" style="background:var(--accent-rest)"></span>
                     <span>Web storefront</span>
                     <span class="ch-pct">64%</span>
-                    <span class="ch-val">$31,204</span>
+                    <span class="ch-val">31,204 KM</span>
                 </div>
                 <div class="ch-row">
                     <span class="ch-dot" style="background:#8764B8"></span>
                     <span>Mobile app</span>
                     <span class="ch-pct">27%</span>
-                    <span class="ch-val">$12,840</span>
+                    <span class="ch-val">12,840 KM</span>
                 </div>
                 <div class="ch-row">
                     <span class="ch-dot" style="background:#107C10"></span>
                     <span>Point of sale</span>
                     <span class="ch-pct">7%</span>
-                    <span class="ch-val">$3,440</span>
+                    <span class="ch-val">3,440 KM</span>
                 </div>
                 <div class="ch-row">
                     <span class="ch-dot" style="background:#F7630C"></span>
                     <span>Marketplaces</span>
                     <span class="ch-pct">2%</span>
-                    <span class="ch-val">$908</span>
+                    <span class="ch-val">908 KM</span>
                 </div>
             </div>
         </div>
@@ -194,7 +194,7 @@ else
                             <div class="mini-sub">@o.Guid.ToString()[..8]… · @o.ItemCount items</div>
                         </div>
                         <span class="ds-badge @OrderStatusClass(o.Status)">@o.Status</span>
-                        <div class="mini-amt">@o.Total.ToString("C")</div>
+                        <div class="mini-amt">@AdminFormat.Money(o.Total)</div>
                     </div>
                 }
                 @if (_recentOrders.Count == 0)
@@ -219,7 +219,7 @@ else
                             <div class="top-name">@name</div>
                             <div class="top-sub">@units units</div>
                         </div>
-                        <div class="top-rev">@rev.ToString("C0")</div>
+                        <div class="top-rev">@AdminFormat.Money0(rev)</div>
                         <span class="ds-badge @(trend > 0 ? "ds-badge-success" : "ds-badge-danger")">
                             @(trend > 0 ? "+" : "")@trend%
                         </span>

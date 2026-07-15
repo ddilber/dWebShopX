@@ -16,13 +16,17 @@ public class SmtpEmailService : IEmailService
         _configuration = configuration;
     }
 
+    // Public site (dWebShop.Web) and admin site (dWebShop.Admin) base URLs, from config.
+    private string SiteUrl => (_configuration["SiteUrl"] ?? "https://asgifiks.ba").TrimEnd('/');
+    private string AdminUrl => (_configuration["AdminUrl"] ?? "https://admin.asgifiks.ba").TrimEnd('/');
+
     public async Task SendRegistrationNotificationToAdminAsync(string adminEmail, string userEmail, string userName)
     {
         var subject = "New client registration pending approval";
         var body = $"<p>A new client has registered and is awaiting your approval.</p>" +
                    $"<p><strong>Name:</strong> {userName}<br/>" +
                    $"<strong>Email:</strong> {userEmail}</p>" +
-                   $"<p>Please log in to the admin panel to approve or reject this registration.</p>";
+                   $"<p><a href=\"{AdminUrl}/users\">Open the admin panel</a> to approve or reject this registration.</p>";
 
         await SendEmailAsync(adminEmail, subject, body);
     }
@@ -31,7 +35,7 @@ public class SmtpEmailService : IEmailService
     {
         var subject = "Your account has been approved";
         var body = $"<p>Dear {clientName},</p>" +
-                   $"<p>Your account has been approved. You can now log in to the portal.</p>";
+                   $"<p>Your account has been approved. You can now <a href=\"{SiteUrl}/login\">log in to the portal</a>.</p>";
 
         await SendEmailAsync(clientEmail, subject, body);
     }

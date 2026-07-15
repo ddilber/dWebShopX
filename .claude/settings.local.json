@@ -39,7 +39,27 @@
       "Bash(perl /tmp/gen_cs.pl)",
       "Bash(perl /tmp/g2.pl)",
       "Bash(perl -e ' *)",
-      "Bash(grep -nE '^        new\\\\\\(\"[^\"]*\", \"[^\"]*\", \"[0-9/]+\"\\\\\\),$' /f/PROJECTS/Blazor/dWebShopX/src/dWebShop.Web/Components/Pages/Projects.razor)"
+      "Bash(grep -nE '^        new\\\\\\(\"[^\"]*\", \"[^\"]*\", \"[0-9/]+\"\\\\\\),$' /f/PROJECTS/Blazor/dWebShopX/src/dWebShop.Web/Components/Pages/Projects.razor)",
+      "PowerShell(dotnet build src/dWebShop.Web/dWebShop.Web.csproj -c Debug --nologo -v q 2>&1)",
+      "Bash(git check-ignore *)",
+      "PowerShell(dotnet build \"F:\\\\PROJECTS\\\\Blazor\\\\dWebShopX\\\\src\\\\dWebShop.Web\\\\dWebShop.Web.csproj\" -c Debug --nologo -v q 2>&1)",
+      "Bash(curl -sS -I -L --max-time 25 -A \"facebookexternalhit/1.1\" \"https://asgifiks.ba/inspiration_images/26855_landingpage_stocolor_dryonic_1278x559px_1_W1476xH0.webp\")",
+      "Bash(curl -sS -I -L --max-time 25 -A \"facebookexternalhit/1.1\" \"https://asgifiks.ba/images/asgifiks_building.jpeg\")",
+      "Bash(curl -sS -L --max-time 25 -A \"facebookexternalhit/1.1\" \"https://asgifiks.ba/brands/sto/inspiracija/bionicke-fasadne-boje\")",
+      "Bash(dotnet add *)",
+      "Bash(dotnet remove *)",
+      "Bash(dotnet run *)",
+      "Bash(find . -iname \"asgifiks_building*\" -not -path \"*/bin/*\" -not -path \"*/obj/*\")",
+      "Bash(ls uploads/)",
+      "Bash(ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5010 dotnet run --no-build -c Debug --project dWebShop.Web.csproj)",
+      "Bash(curl -sS --max-time 20 \"http://localhost:5010/brands/sto/inspiracija/bionicke-fasadne-boje\")",
+      "Bash(curl -sS -D - -o /tmp/sm.xml --max-time 25 \"https://asgifiks.ba/sitemap.xml\")",
+      "Bash(xxd)",
+      "Bash(curl -s -o /tmp/sm2.xml -w \"status=%{http_code}\\\\n\" --max-time 5 \"http://localhost:5011/sitemap.xml\")",
+      "Bash(ASPNETCORE_ENVIRONMENT=Development dotnet run --no-build -c Debug --project dWebShop.Web.csproj)",
+      "PowerShell(try { $x = [xml]\\(Get-Content -Raw -Encoding UTF8 'C:/tmp/sm2.xml' -ErrorAction Stop\\); Write-Output \"VALID XML — $\\($x.urlset.url.Count\\) <url> entries\" } catch { try { $x=[xml]\\(Get-Content -Raw '/tmp/sm2.xml'\\); Write-Output \"VALID XML — $\\($x.urlset.url.Count\\) url entries\" } catch { Write-Output \"PARSE ERROR: $_\" } })",
+      "PowerShell(dotnet build src/dWebShop.Admin/dWebShop.Admin.csproj -c Debug --nologo -v quiet 2>&1)",
+      "PowerShell(dotnet restore src/dWebShop.Admin/dWebShop.Admin.csproj --nologo 2>&1)"
     ]
   }
 }

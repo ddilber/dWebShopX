@@ -75,9 +75,13 @@
             @if (_con)
             {
                 <div class="shell-nav-children">
-                    <NavLink href="/blog" class="shell-nav-item is-child" ActiveClass="is-active">
+                    <NavLink href="/blog" Match="NavLinkMatch.All" class="shell-nav-item is-child" ActiveClass="is-active">
                         <span class="shell-nav-icon">@IcoDoc</span>
                         <span class="shell-nav-label">Blog</span>
+                    </NavLink>
+                    <NavLink href="/blog/taxonomy" class="shell-nav-item is-child" ActiveClass="is-active">
+                        <span class="shell-nav-icon">@IcoTag</span>
+                        <span class="shell-nav-label">Blog taxonomy</span>
                     </NavLink>
                     <NavLink href="/inspirations" class="shell-nav-item is-child" ActiveClass="is-active">
                         <span class="shell-nav-icon">@IcoStar</span>

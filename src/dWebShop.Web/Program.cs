@@ -89,6 +89,7 @@ if (!string.IsNullOrWhiteSpace(sharedUploads))
 }
 
 app.MapStaticAssets();
+app.MapOgImage();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
@@ -153,8 +154,18 @@ app.MapGet("/sitemap.xml", async (IMediator mediator, IConfiguration config) =>
         // If the DB is unavailable, still serve a partial sitemap rather than 500.
     }
 
-    var sb = new StringBuilder();
-    using (var writer = XmlWriter.Create(sb, new XmlWriterSettings { Indent = true, Async = false }))
+    using var ms = new MemoryStream();
+    // A StringBuilder-backed XmlWriter stamps encoding="utf-16" in the prolog
+    // (because .NET strings are UTF-16). Served as UTF-8 that mismatch makes
+    // parsers reject the file — Google Search Console: "Unsupported file
+    // format". Write UTF-8 bytes (no BOM) so the declaration matches the body.
+    var xmlSettings = new XmlWriterSettings
+    {
+        Indent = true,
+        Async = false,
+        Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+    };
+    using (var writer = XmlWriter.Create(ms, xmlSettings))
     {
         writer.WriteStartDocument();
         writer.WriteStartElement("urlset", "http://www.sitemaps.org/schemas/sitemap/0.9");
@@ -172,7 +183,7 @@ app.MapGet("/sitemap.xml", async (IMediator mediator, IConfiguration config) =>
         writer.WriteEndDocument();
     }
 
-    return Results.Content(sb.ToString(), "application/xml", Encoding.UTF8);
+    return Results.Bytes(ms.ToArray(), "application/xml");
 });
 
 app.Run();

@@ -3,7 +3,10 @@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Identity
 @using dWebShop.Domain.Entities.Users
+@using dWebShop.Application.Services
 @inject UserManager<ApplicationUser> UserManager
+@inject IEmailService EmailService
+@inject ILogger<Index> Logger
 
 <PageTitle>Users — dWebShop Admin</PageTitle>
 
@@ -65,6 +68,18 @@ else if (_users is not null)
         {
             user.IsApproved = true;
             await UserManager.UpdateAsync(user);
+
+            if (!string.IsNullOrWhiteSpace(user.Email))
+            {
+                try
+                {
+                    await EmailService.SendApprovalConfirmationToClientAsync(user.Email, user.UserName ?? user.Email);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Failed to send approval confirmation email to {UserEmail}", user.Email);
+                }
+            }
         }
         await LoadAsync();
     }

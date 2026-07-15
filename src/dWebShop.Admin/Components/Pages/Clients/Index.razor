@@ -8,14 +8,25 @@
 
 <PageTitle>Clients — dWebShop Admin</PageTitle>
 
-<FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom: 16px;">
-    <FluentLabel Style="font-size: 22px; font-weight: 600;">Clients</FluentLabel>
-    <FluentSpacer />
-    <FluentButton Appearance="ButtonAppearance.Primary" IconStart="@(new Icons.Regular.Size16.Add())" OnClick="@(() => Navigation.NavigateTo("/clients/new"))">
-        Add Client
-    </FluentButton>
-</FluentStack>
-<FluentDivider Style="margin-bottom: 24px;" />
+<div class="admin-page-head">
+    <div>
+        <nav class="admin-breadcrumb">
+            <a href="/clients">Commerce</a> › Clients
+        </nav>
+        <h1 class="admin-page-title">Clients</h1>
+        @if (_clients is not null)
+        {
+            <p class="admin-page-sub">@_clients.Count client@(_clients.Count == 1 ? "" : "s")</p>
+        }
+    </div>
+    <div class="admin-page-actions">
+        <FluentButton Appearance="ButtonAppearance.Primary"
+                      IconStart="@(new Icons.Regular.Size16.Add())"
+                      OnClick="@(() => Navigation.NavigateTo("/clients/new"))">
+            Add client
+        </FluentButton>
+    </div>
+</div>
 
 @if (_loading)
 {
@@ -23,19 +34,38 @@
 }
 else if (_clients is not null)
 {
-    <FluentTextInput @bind-Value="_search" Placeholder="Search clients..."
-                     Style="margin-bottom: 16px; width: 300px; display: block;" />
+    <FluentCard>
+        <div style="max-width: 320px; margin-bottom: 16px;">
+            <input class="co-input" @bind="_search" @bind:event="oninput" placeholder="Search by company or email…" />
+        </div>
 
-    <FluentDataGrid Items="@Filtered.AsQueryable()" Pagination="@_pagination" TGridItem="PartnerDto">
-        <PropertyColumn Title="Company" Property="@(c => c.DisplayName)" Sortable="true" />
-        <PropertyColumn Title="Email" Property="@(c => c.Email)" Sortable="true" />
-        <TemplateColumn Title="Actions">
-            <FluentButton IconStart="@(new Icons.Regular.Size16.Edit())" OnClick="@(() => Navigation.NavigateTo($"/clients/{context.Id}"))">
-                Edit
-            </FluentButton>
-        </TemplateColumn>
-    </FluentDataGrid>
-    <FluentPaginator State="@_pagination" />
+        @if (Filtered.Count > 0)
+        {
+            <FluentDataGrid Items="@Filtered.AsQueryable()" Pagination="@_pagination" TGridItem="PartnerDto">
+                <TemplateColumn Title="Client" Sortable="true" SortBy="@_sortByName">
+                    <div class="pl-client-row" style="padding: 4px 0;">
+                        <span class="pl-avatar">@Initials(context.DisplayName)</span>
+                        <span class="pl-client-name">@context.DisplayName</span>
+                    </div>
+                </TemplateColumn>
+                <PropertyColumn Title="Email" Property="@(c => c.Email)" Sortable="true" />
+                <TemplateColumn Title="">
+                    <FluentButton Appearance="ButtonAppearance.Transparent"
+                                  IconStart="@(new Icons.Regular.Size16.Edit())"
+                                  OnClick="@(() => Navigation.NavigateTo($"/clients/{context.Id}"))">
+                        Edit
+                    </FluentButton>
+                </TemplateColumn>
+            </FluentDataGrid>
+            <FluentPaginator State="@_pagination" />
+        }
+        else
+        {
+            <div class="co-empty-items">
+                @(string.IsNullOrWhiteSpace(_search) ? "No clients yet. Add your first client to get started." : "No clients match your search.")
+            </div>
+        }
+    </FluentCard>
 }
 
 @code {
@@ -43,6 +73,8 @@ else if (_clients is not null)
     private bool _loading = true;
     private string _search = "";
     private PaginationState _pagination = new() { ItemsPerPage = 20 };
+
+    private readonly GridSort<PartnerDto> _sortByName = GridSort<PartnerDto>.ByAscending(p => p.DisplayName);
 
     private List<PartnerDto> Filtered => string.IsNullOrWhiteSpace(_search)
         ? _clients!
@@ -54,5 +86,13 @@ else if (_clients is not null)
         var result = await Mediator.Send(new GetPartnersQuery());
         _clients = result.ToList();
         _loading = false;
+    }
+
+    private static string Initials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Replace("—", " ").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0][..1].ToUpperInvariant();
+        return (parts[0][..1] + parts[^1][..1]).ToUpperInvariant();
     }
 }

@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Identity
 
 @inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
 
 <PageTitle>Prijava — Web Shop</PageTitle>
@@ -66,8 +67,17 @@
     {
         await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
 
+        // Accounts can have a username that differs from the email (e.g. the seeded
+        // "admin" user), so resolve by email before signing in.
+        var user = await UserManager.FindByEmailAsync(Input!.Email);
+        if (user is null)
+        {
+            _errorMessage = "Pogrešan e-mail ili lozinka.";
+            return;
+        }
+
         var result = await SignInManager.PasswordSignInAsync(
-            Input!.Email, Input.Password, isPersistent: false, lockoutOnFailure: false);
+            user, Input.Password, isPersistent: false, lockoutOnFailure: false);
 
         if (result.Succeeded)
         {

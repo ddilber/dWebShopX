@@ -69,11 +69,11 @@ else
 
     <!-- Tab row -->
     <div class="ds-tabs" style="margin-bottom: var(--sp-24);">
-        <button class="ds-tab @(_activeTab == 0 ? "is-active" : "")" @onclick="@(() => _activeTab = 0)">General</button>
-        <button class="ds-tab @(_activeTab == 1 ? "is-active" : "")" @onclick="@(() => _activeTab = 1)">Media</button>
-        <button class="ds-tab @(_activeTab == 2 ? "is-active" : "")" @onclick="@(() => _activeTab = 2)">Pricing &amp; Inventory</button>
-        <button class="ds-tab @(_activeTab == 3 ? "is-active" : "")" @onclick="@(() => _activeTab = 3)">Variants</button>
-        <button class="ds-tab @(_activeTab == 4 ? "is-active" : "")" @onclick="@(() => _activeTab = 4)">SEO</button>
+        <button class="ds-tab @(_activeTab == 0 ? "is-active" : "")" @onclick="@(() => SetTabAsync(0))">General</button>
+        <button class="ds-tab @(_activeTab == 1 ? "is-active" : "")" @onclick="@(() => SetTabAsync(1))">Media</button>
+        <button class="ds-tab @(_activeTab == 2 ? "is-active" : "")" @onclick="@(() => SetTabAsync(2))">Pricing &amp; Inventory</button>
+        <button class="ds-tab @(_activeTab == 3 ? "is-active" : "")" @onclick="@(() => SetTabAsync(3))">Variants</button>
+        <button class="ds-tab @(_activeTab == 4 ? "is-active" : "")" @onclick="@(() => SetTabAsync(4))">SEO</button>
     </div>
 
     <div class="detail-grid">
@@ -112,7 +112,7 @@ else
                         </div>
                         <div class="field span-2">
                             <label class="field-label">Full description</label>
-                            <textarea class="ds-textarea" rows="6" placeholder="Detailed product description, features and specifications…" @bind="_form.DetailDescription"></textarea>
+                            <RichTextEditor @ref="_detailEditor" Html="@_form.DetailDescription" />
                         </div>
                     </div>
                 </div>
@@ -369,7 +369,7 @@ else
                                                 }
                                                 else { <span style="color:var(--fg-4)">—</span> }
                                             </td>
-                                            <td class="ds-td" style="text-align:right;font-variant-numeric:tabular-nums">$@sku.Price.ToString("N2")</td>
+                                            <td class="ds-td" style="text-align:right;font-variant-numeric:tabular-nums">@AdminFormat.Money(sku.Price)</td>
                                             <td class="ds-td" style="text-align:right;color:var(--fg-3)">@sku.Tax.ToString("N1")%</td>
                                             <td class="ds-td" style="text-align:right">
                                                 <button class="ds-btn ds-btn-subtle" @onclick="@(() => OpenEditSku(sku))">Edit</button>
@@ -604,6 +604,16 @@ else
     private string? _error;
     private bool _saved;
     private int _activeTab;
+    private RichTextEditor? _detailEditor;
+
+    // Flush the rich editor into the model before leaving the General tab, so edits
+    // survive tab switches (the editor is unmounted when the tab is hidden).
+    private async Task SetTabAsync(int tab)
+    {
+        if (_activeTab == 0 && tab != 0 && _detailEditor is not null)
+            _form.DetailDescription = await _detailEditor.GetHtmlAsync();
+        _activeTab = tab;
+    }
 
     private ProductDetailDto? _detail;
     private List<BrandDto> _brands = [];
@@ -775,6 +785,10 @@ else
 
         if (string.IsNullOrWhiteSpace(_form.Name)) { _error = "Product name is required."; return; }
         if (string.IsNullOrWhiteSpace(_form.Slug)) { _error = "URL slug is required."; return; }
+
+        // Flush the rich editor if the General tab is currently mounted.
+        if (_activeTab == 0 && _detailEditor is not null)
+            _form.DetailDescription = await _detailEditor.GetHtmlAsync();
 
         _saving = true;
         try

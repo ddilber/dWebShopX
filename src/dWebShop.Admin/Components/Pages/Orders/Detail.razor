@@ -95,7 +95,7 @@ else
                 <div class="order-card-head">
                     <span class="order-card-title">Items</span>
                     <div style="display:flex; align-items:center; gap: 12px;">
-                        <span style="color: var(--colorNeutralForeground3); font-size: 13px;">@_order.Items.Count items · @_order.Items.Sum(i => i.Price * i.Quantity).ToString("C2")</span>
+                        <span style="color: var(--colorNeutralForeground3); font-size: 13px;">@_order.Items.Count items · @AdminFormat.Money(_order.Items.Sum(i => i.Price * i.Quantity))</span>
                         <FluentButton Appearance="ButtonAppearance.Transparent"
                                       IconStart="@(new Icons.Regular.Size16.Add())"
                                       Style="font-size: 12px;"
@@ -112,18 +112,18 @@ else
                                 <div class="oi-sub"><span class="oi-mono">@item.SKU</span></div>
                             </div>
                             <div class="oi-qty">×@((int)item.Quantity)</div>
-                            <div class="oi-price">@item.Price.ToString("C2")</div>
+                            <div class="oi-price">@AdminFormat.Money(item.Price)</div>
                         </div>
                     }
                 </div>
                 <div class="order-totals">
                     @{ var subtotal = _order.Items.Sum(i => i.Price * i.Quantity); }
-                    <div><span>Subtotal</span><span>@subtotal.ToString("C2")</span></div>
-                    <div><span>Shipping (Standard)</span><span>$0.00</span></div>
-                    <div><span>Tax</span><span>$0.00</span></div>
+                    <div><span>Subtotal</span><span>@AdminFormat.Money(subtotal)</span></div>
+                    <div><span>Shipping (Standard)</span><span>@AdminFormat.Money(0m)</span></div>
+                    <div><span>Tax</span><span>@AdminFormat.Money(0m)</span></div>
                     <div class="grand">
                         <span>Total</span>
-                        <span>@subtotal.ToString("C2")</span>
+                        <span>@AdminFormat.Money(subtotal)</span>
                     </div>
                 </div>
             </FluentCard>
@@ -210,7 +210,7 @@ else
                     <span style="font-size:12px; color:var(--colorNeutralForeground2);">Payment reference</span>
                 </div>
                 <div style="margin-top: 8px;">
-                    <span class="order-badge payment-@_order.PaymentStatus.ToLower()">@_order.PaymentStatus · @_order.Items.Sum(i => i.Price * i.Quantity).ToString("C2")</span>
+                    <span class="order-badge payment-@_order.PaymentStatus.ToLower()">@_order.PaymentStatus · @AdminFormat.Money(_order.Items.Sum(i => i.Price * i.Quantity))</span>
                 </div>
             </FluentCard>
 
@@ -319,7 +319,7 @@ else
                                     </div>
                                     @if (prod.MinPrice.HasValue)
                                     {
-                                        <div class="oi-price">@prod.MinPrice.Value.ToString("C2")</div>
+                                        <div class="oi-price">@AdminFormat.Money(prod.MinPrice.Value)</div>
                                     }
                                 </div>
                             }
@@ -336,7 +336,7 @@ else
                             @foreach (var sku in _skuOptions)
                             {
                                 <option value="@sku.Id" selected="@(_selectedSkuId == sku.Id)">
-                                    @sku.SKU@(string.IsNullOrWhiteSpace(sku.Name) ? "" : $" — {sku.Name}") · @sku.Price.ToString("C2")
+                                    @sku.SKU@(string.IsNullOrWhiteSpace(sku.Name) ? "" : $" — {sku.Name}") · @AdminFormat.Money(sku.Price)
                                 </option>
                             }
                         </select>

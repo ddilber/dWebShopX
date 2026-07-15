@@ -1,0 +1,82 @@
+@page "/blog/new"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using MediatR
+@using dWebShop.Application.Features.Blog.Commands
+@using dWebShop.Application.Features.Blog.Queries
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+
+<PageTitle>New Post — dWebShop Admin</PageTitle>
+
+<div class="admin-page-head">
+    <div>
+        <nav class="admin-breadcrumb">
+            <a href="/blog">Content</a> › <a href="/blog">Blog</a> › New post
+        </nav>
+        <h1 class="admin-page-title">New post</h1>
+    </div>
+    <div class="admin-page-actions">
+        <FluentButton Appearance="ButtonAppearance.Transparent"
+                      IconStart="@(new Icons.Regular.Size16.Dismiss())"
+                      OnClick="@(() => Navigation.NavigateTo("/blog"))">Discard</FluentButton>
+        <FluentButton Appearance="ButtonAppearance.Primary"
+                      IconStart="@(new Icons.Regular.Size16.Checkmark())"
+                      Disabled="@_saving"
+                      OnClick="SaveAsync">
+            @if (_saving) { <span>Creating…</span> } else { <span>Create post</span> }
+        </FluentButton>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <FluentMessageBar Intent="MessageBarIntent.Error" Style="margin-bottom: 16px;">@_error</FluentMessageBar>
+}
+
+<BlogPostEditor @ref="_editor" Model="_model" AllCategories="_categories" AllTags="_tags" />
+
+@code {
+    private BlogPostEditor _editor = default!;
+    private readonly PostEditModel _model = new() { Published = false };
+    private List<PostCategoryDto> _categories = new();
+    private List<PostTagDto> _tags = new();
+    private string _error = "";
+    private bool _saving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Sequential: these handlers share one scoped DbContext and cannot run concurrently.
+        _categories = await Mediator.Send(new GetPostCategoriesQuery());
+        _tags = await Mediator.Send(new GetPostTagsQuery());
+    }
+
+    private async Task SaveAsync()
+    {
+        _error = "";
+        await _editor.ApplyAsync();
+
+        if (string.IsNullOrWhiteSpace(_model.Title))
+        {
+            _error = "Title is required.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_model.Slug))
+            _model.Slug = SlugHelper.Slugify(_model.Title);
+
+        _saving = true;
+        try
+        {
+            var id = await Mediator.Send(new CreatePostCommand(
+                _model.Title, _model.MetaTitle, _model.Slug, _model.Summary, _model.Content,
+                _model.Published, _model.MetaDescription,
+                _model.CategoryIds.ToList(), _model.TagIds.ToList()));
+            Navigation.NavigateTo($"/blog/{id}");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            _saving = false;
+        }
+    }
+}

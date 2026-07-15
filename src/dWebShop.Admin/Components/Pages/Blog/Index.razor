@@ -8,14 +8,33 @@
 
 <PageTitle>Blog — dWebShop Admin</PageTitle>
 
-<FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom: 16px;">
-    <FluentLabel Style="font-size: 22px; font-weight: 600;">Blog Posts</FluentLabel>
-    <FluentSpacer />
-    <FluentButton Appearance="ButtonAppearance.Primary" IconStart="@(new Icons.Regular.Size16.Add())" OnClick="@(() => Navigation.NavigateTo("/blog/new"))">
-        New Post
-    </FluentButton>
-</FluentStack>
-<FluentDivider Style="margin-bottom: 24px;" />
+<div class="admin-page-head">
+    <div>
+        <nav class="admin-breadcrumb">
+            <a href="/blog">Content</a> › Blog
+        </nav>
+        <h1 class="admin-page-title">Blog posts</h1>
+        @if (_posts is not null)
+        {
+            <p class="admin-page-sub">
+                @_posts.Count post@(_posts.Count == 1 ? "" : "s")
+                · @_posts.Count(p => p.Published) published
+            </p>
+        }
+    </div>
+    <div class="admin-page-actions">
+        <FluentButton Appearance="ButtonAppearance.Transparent"
+                      IconStart="@(new Icons.Regular.Size16.Filter())"
+                      OnClick="@(() => Navigation.NavigateTo("/blog/taxonomy"))">
+            Categories &amp; tags
+        </FluentButton>
+        <FluentButton Appearance="ButtonAppearance.Primary"
+                      IconStart="@(new Icons.Regular.Size16.Add())"
+                      OnClick="@(() => Navigation.NavigateTo("/blog/new"))">
+            New post
+        </FluentButton>
+    </div>
+</div>
 
 @if (_loading)
 {
@@ -23,24 +42,52 @@
 }
 else if (_posts is not null)
 {
-    <FluentDataGrid Items="@_posts.AsQueryable()" Pagination="@_pagination" TGridItem="PostListItemDto">
-        <PropertyColumn Title="Title" Property="@(p => p.Title)" Sortable="true" />
-        <PropertyColumn Title="Date" Property="@(p => p.CreatedDate.HasValue ? p.CreatedDate.Value.ToString("dd.MM.yyyy") : "-")" />
-        <TemplateColumn Title="Published">
-            <FluentIcon Value="@((Icon)(context.Published ? new Icons.Regular.Size16.CheckmarkCircle() : (Icon)new Icons.Regular.Size16.DismissCircle()))"
-                        Color="@(context.Published ? Color.Success : Color.Error)" />
-        </TemplateColumn>
-        <TemplateColumn Title="Actions">
-            <FluentButton IconStart="@(new Icons.Regular.Size16.Edit())" OnClick="@(() => Navigation.NavigateTo($"/blog/{context.Id}"))">Edit</FluentButton>
-        </TemplateColumn>
-    </FluentDataGrid>
-    <FluentPaginator State="@_pagination" />
+    <FluentCard>
+        <div style="max-width: 320px; margin-bottom: 16px;">
+            <input class="co-input" @bind="_search" @bind:event="oninput" placeholder="Search by title…" />
+        </div>
+
+        @if (Filtered.Count > 0)
+        {
+            <FluentDataGrid Items="@Filtered.AsQueryable()" Pagination="@_pagination" TGridItem="PostListItemDto">
+                <PropertyColumn Title="Title" Property="@(p => p.Title)" Sortable="true" />
+                <TemplateColumn Title="Date">
+                    @(context.CreatedDate.HasValue ? context.CreatedDate.Value.ToString("dd.MM.yyyy") : "—")
+                </TemplateColumn>
+                <TemplateColumn Title="Status">
+                    <span class="pl-badge @(context.Published ? "pl-badge-active" : "pl-badge-inactive")">
+                        @(context.Published ? "Published" : "Draft")
+                    </span>
+                </TemplateColumn>
+                <TemplateColumn Title="">
+                    <FluentButton Appearance="ButtonAppearance.Transparent"
+                                  IconStart="@(new Icons.Regular.Size16.Edit())"
+                                  OnClick="@(() => Navigation.NavigateTo($"/blog/{context.Id}"))">
+                        Edit
+                    </FluentButton>
+                </TemplateColumn>
+            </FluentDataGrid>
+            <FluentPaginator State="@_pagination" />
+        }
+        else
+        {
+            <div class="co-empty-items">
+                @(string.IsNullOrWhiteSpace(_search) ? "No posts yet. Write your first post to get started." : "No posts match your search.")
+            </div>
+        }
+    </FluentCard>
 }
 
 @code {
     private List<PostListItemDto>? _posts;
     private bool _loading = true;
+    private string _search = "";
     private PaginationState _pagination = new() { ItemsPerPage = 20 };
+
+    private List<PostListItemDto> Filtered => string.IsNullOrWhiteSpace(_search)
+        ? _posts!
+        : _posts!.Where(p => p.Title.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                          || p.Slug.Contains(_search, StringComparison.OrdinalIgnoreCase)).ToList();
 
     protected override async Task OnInitializedAsync()
     {

@@ -177,11 +177,23 @@ public static class ShopFormatting
 {
     public static string FmtPrice(decimal p) => $"{p:N2} KM";
 
+    // Legacy/imported SKUs often carry a supplier "No Image Available"
+    // placeholder file (/no-image.jpg) as their ImagePath. That loud stock
+    // graphic clashes with the site, so we treat it as "no image" and let the
+    // pages fall back to their own discreet placeholder instead.
+    public static bool HasRealImage(string? path) =>
+        !string.IsNullOrWhiteSpace(path) &&
+        !path.TrimEnd().EndsWith("no-image.jpg", StringComparison.OrdinalIgnoreCase);
+
+    public static string? RealImageOrNull(string? path) =>
+        HasRealImage(path) ? path : null;
+
     public static (string Label, string Color) StockLabel(string bucket) => bucket switch
     {
         "in"  => ("Na zalihi",              "var(--asg-accent)"),
         "low" => ("Niska zaliha",           "#b87320"),
-        _     => ("Po narudžbi (5–7 dana)", "var(--asg-muted)"),
+        //_     => ("Po narudžbi (5–7 dana)", "var(--asg-muted)"),
+        _ => ("", ""),
     };
 
     // Stable, opaque key for matching a selected option combination to a SKU.

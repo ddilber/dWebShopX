@@ -27,11 +27,9 @@ else
     var _canonical = $"https://asgifiks.ba/brands/{BrandSlug}/inspiracija/{ArticleSlug}";
     var _metaTitle = string.IsNullOrWhiteSpace(_item.MetaTitle) ? _item.Title : _item.MetaTitle;
     var _metaDesc = string.IsNullOrWhiteSpace(_item.MetaDescription) ? _item.Lede : _item.MetaDescription;
-    var _ogImage = !string.IsNullOrWhiteSpace(_item.OgImage)
-        ? $"https://asgifiks.ba/{_item.OgImage.TrimStart('/')}"
-        : (!string.IsNullOrWhiteSpace(_item.CoverImage)
-            ? $"https://asgifiks.ba/{_item.CoverImage.TrimStart('/')}"
-            : "https://asgifiks.ba/images/asgifiks_building.jpeg");
+    var _ogImagePath = !string.IsNullOrWhiteSpace(_item.OgImage) ? _item.OgImage
+        : (!string.IsNullOrWhiteSpace(_item.CoverImage) ? _item.CoverImage : null);
+    var _ogImage = Seo.OgImage(_ogImagePath);
     <HeadContent>
         <link rel="canonical" href="@_canonical" />
         <meta name="description" content="@_metaDesc" />
@@ -39,7 +37,7 @@ else
         <meta property="og:description" content="@_metaDesc" />
         <meta property="og:url" content="@_canonical" />
         <meta property="og:type" content="article" />
-        <meta property="og:image" content="@_ogImage" />
+        @Seo.OgImageTags(_ogImagePath, _metaTitle)
         @Seo.JsonLd(new JsonObject {
             ["@type"] = "Article",
             ["headline"] = _item.Title,
@@ -274,7 +272,7 @@ else
                                             <div class="asg-insp-side-product-info">
                                                 <div class="b">@(p.BrandSlug?.ToUpperInvariant() ?? p.BrandName?.ToUpperInvariant() ?? "")</div>
                                                 <div class="n">@p.Name</div>
-                                                <div class="s">@p.Short</div>
+                                                <div class="s">@Seo.PlainText(p.Short, 100)</div>
                                             </div>
                                         </a>
                                     }

@@ -8,33 +8,71 @@
 
 <PageTitle>New Client — dWebShop Admin</PageTitle>
 
-<FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom: 16px;">
-    <FluentLabel Style="font-size: 22px; font-weight: 600;">New Client</FluentLabel>
-</FluentStack>
-<FluentDivider Style="margin-bottom: 24px;" />
+<div class="admin-page-head">
+    <div>
+        <nav class="admin-breadcrumb">
+            <a href="/clients">Commerce</a> › <a href="/clients">Clients</a> › New client
+        </nav>
+        <h1 class="admin-page-title">Create client</h1>
+        <p class="admin-page-sub">Add a business or individual you sell to. You can assign pricelists and discounts afterwards.</p>
+    </div>
+    <div class="admin-page-actions">
+        <FluentButton Appearance="ButtonAppearance.Transparent"
+                      IconStart="@(new Icons.Regular.Size16.Dismiss())"
+                      OnClick="@(() => Navigation.NavigateTo("/clients"))">Discard</FluentButton>
+        <FluentButton Appearance="ButtonAppearance.Primary"
+                      IconStart="@(new Icons.Regular.Size16.Checkmark())"
+                      Disabled="@_saving"
+                      OnClick="SaveAsync">
+            @if (_saving) { <span>Creating…</span> } else { <span>Create client</span> }
+        </FluentButton>
+    </div>
+</div>
 
-<div style="max-width: 560px;">
-    <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px;">
+@if (!string.IsNullOrEmpty(_error))
+{
+    <FluentMessageBar Intent="MessageBarIntent.Error" Style="margin-bottom: 16px;">@_error</FluentMessageBar>
+}
 
-        @if (!string.IsNullOrEmpty(_error))
-        {
-            <FluentMessageBar Intent="MessageBarIntent.Error">@_error</FluentMessageBar>
-        }
+<div style="max-width: 640px;">
+    <FluentCard>
+        <div class="order-card-title" style="margin-bottom: 16px;">Company</div>
+        <div class="pl-form-grid">
+            <div class="pl-field">
+                <label class="co-label" for="cl-company">Company name</label>
+                <input id="cl-company" class="co-input" @bind="_companyName" @bind:event="oninput"
+                       placeholder="e.g. Gradnja d.o.o." />
+                <div class="pl-hint">Leave blank for an individual customer.</div>
+            </div>
+        </div>
+    </FluentCard>
 
-        <FluentTextInput @bind-Value="_firstName" Label="First Name" Style="width: 100%" />
-        <FluentTextInput @bind-Value="_lastName" Label="Last Name" Style="width: 100%" />
-        <FluentTextInput @bind-Value="_companyName" Label="Company Name" Style="width: 100%" />
-        <FluentTextInput @bind-Value="_email" Label="Email" TextInputType="TextInputType.Email" Style="width: 100%" />
-        <FluentTextInput @bind-Value="_phone" Label="Phone" Style="width: 100%" />
-
-        <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px; margin-top: 8px;">
-            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="SaveAsync">
-                @if (_saving) { <FluentProgressRing Style="width:16px;height:16px;" /> } else { <span>Create Client</span> }
-            </FluentButton>
-            <FluentButton OnClick="@(() => Navigation.NavigateTo("/clients"))">Cancel</FluentButton>
-        </FluentStack>
-
-    </FluentStack>
+    <FluentCard style="margin-top: 16px;">
+        <div class="order-card-title" style="margin-bottom: 16px;">Contact</div>
+        <div class="pl-form-grid">
+            <div class="pl-form-row">
+                <div class="pl-field">
+                    <label class="co-label" for="cl-first">First name</label>
+                    <input id="cl-first" class="co-input" @bind="_firstName" @bind:event="oninput" />
+                </div>
+                <div class="pl-field">
+                    <label class="co-label" for="cl-last">Last name</label>
+                    <input id="cl-last" class="co-input" @bind="_lastName" @bind:event="oninput" />
+                </div>
+            </div>
+            <div class="pl-form-row">
+                <div class="pl-field">
+                    <label class="co-label" for="cl-email">Email</label>
+                    <input id="cl-email" type="email" class="co-input" @bind="_email" @bind:event="oninput"
+                           placeholder="name@company.com" />
+                </div>
+                <div class="pl-field">
+                    <label class="co-label" for="cl-phone">Phone</label>
+                    <input id="cl-phone" class="co-input" @bind="_phone" @bind:event="oninput" />
+                </div>
+            </div>
+        </div>
+    </FluentCard>
 </div>
 
 @code {
@@ -52,7 +90,7 @@
 
         if (string.IsNullOrWhiteSpace(_firstName) && string.IsNullOrWhiteSpace(_lastName) && string.IsNullOrWhiteSpace(_companyName))
         {
-            _error = "At least one of First Name, Last Name, or Company Name is required.";
+            _error = "Enter a company name, or a first/last name.";
             return;
         }
 

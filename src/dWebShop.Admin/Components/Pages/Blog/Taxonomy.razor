@@ -1,0 +1,245 @@
+@page "/blog/taxonomy"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using MediatR
+@using dWebShop.Application.Features.Blog.Commands
+@using dWebShop.Application.Features.Blog.Queries
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+
+<PageTitle>Blog Taxonomy — dWebShop Admin</PageTitle>
+
+<div class="admin-page-head">
+    <div>
+        <nav class="admin-breadcrumb">
+            <a href="/blog">Content</a> › <a href="/blog">Blog</a> › Taxonomy
+        </nav>
+        <h1 class="admin-page-title">Categories &amp; tags</h1>
+        <p class="admin-page-sub">Manage the taxonomy used to organise blog posts.</p>
+    </div>
+    <div class="admin-page-actions">
+        <FluentButton Appearance="ButtonAppearance.Transparent"
+                      IconStart="@(new Icons.Regular.Size16.ArrowLeft())"
+                      OnClick="@(() => Navigation.NavigateTo("/blog"))">Back to posts</FluentButton>
+    </div>
+</div>
+
+@if (_loading)
+{
+    <FluentProgressRing />
+}
+else
+{
+    <div class="admin-detail-grid">
+
+        @* ── Categories ────────────────────────────────────── *@
+        <div class="admin-detail-main">
+            <FluentCard>
+                <div class="order-card-title" style="margin-bottom: 16px;">Categories</div>
+
+                <div class="pl-add-row" style="border-top: none; margin-top: 0; padding-top: 0;">
+                    <input class="co-input" placeholder="New category name…" value="@_newCategory"
+                           @oninput="e => _newCategory = e.Value?.ToString() ?? string.Empty"
+                           @onkeydown="e => OnKeyDown(e, AddCategoryAsync)" />
+                    <FluentButton Appearance="ButtonAppearance.Primary"
+                                  IconStart="@(new Icons.Regular.Size16.Add())"
+                                  Disabled="@(string.IsNullOrWhiteSpace(_newCategory) || _busy)"
+                                  OnClick="AddCategoryAsync">Add</FluentButton>
+                </div>
+                @if (!string.IsNullOrEmpty(_categoryError))
+                {
+                    <div class="pl-add-error">@_categoryError</div>
+                }
+
+                @if (_categories.Count > 0)
+                {
+                    <div class="pl-tax-list">
+                        @foreach (var c in _categories)
+                        {
+                            var cat = c;
+                            <div class="pl-tax-row">
+                                <span class="pl-tax-name">@cat.Name</span>
+                                <span class="pl-mono pl-muted">@cat.Slug</span>
+                                @if (_pendingCategory == cat.Id)
+                                {
+                                    <span class="pl-confirm">Delete?</span>
+                                    <button class="pl-link-btn pl-link-danger" @onclick="() => ConfirmDeleteCategoryAsync(cat.Id)" disabled="@_busy">Yes</button>
+                                    <button class="pl-link-btn" @onclick="() => _pendingCategory = null">No</button>
+                                }
+                                else
+                                {
+                                    <button class="co-remove-btn" title="Delete category"
+                                            @onclick="() => _pendingCategory = cat.Id" disabled="@_busy">
+                                        <FluentIcon Value="@(new Icons.Regular.Size16.Dismiss())" />
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="pl-side-empty" style="margin-top: 16px;">No categories yet.</div>
+                }
+            </FluentCard>
+        </div>
+
+        @* ── Tags ──────────────────────────────────────────── *@
+        <div class="admin-detail-side">
+            <FluentCard>
+                <div class="order-card-title" style="margin-bottom: 16px;">Tags</div>
+
+                <div class="pl-add-row" style="border-top: none; margin-top: 0; padding-top: 0;">
+                    <input class="co-input" placeholder="New tag name…" value="@_newTag"
+                           @oninput="e => _newTag = e.Value?.ToString() ?? string.Empty"
+                           @onkeydown="e => OnKeyDown(e, AddTagAsync)" />
+                    <FluentButton Appearance="ButtonAppearance.Primary"
+                                  IconStart="@(new Icons.Regular.Size16.Add())"
+                                  Disabled="@(string.IsNullOrWhiteSpace(_newTag) || _busy)"
+                                  OnClick="AddTagAsync">Add</FluentButton>
+                </div>
+                @if (!string.IsNullOrEmpty(_tagError))
+                {
+                    <div class="pl-add-error">@_tagError</div>
+                }
+
+                @if (_tags.Count > 0)
+                {
+                    <div class="pl-tax-list">
+                        @foreach (var t in _tags)
+                        {
+                            var tag = t;
+                            <div class="pl-tax-row">
+                                <span class="pl-tax-name">@tag.Name</span>
+                                <span class="pl-mono pl-muted">@tag.Slug</span>
+                                @if (_pendingTag == tag.Id)
+                                {
+                                    <span class="pl-confirm">Delete?</span>
+                                    <button class="pl-link-btn pl-link-danger" @onclick="() => ConfirmDeleteTagAsync(tag.Id)" disabled="@_busy">Yes</button>
+                                    <button class="pl-link-btn" @onclick="() => _pendingTag = null">No</button>
+                                }
+                                else
+                                {
+                                    <button class="co-remove-btn" title="Delete tag"
+                                            @onclick="() => _pendingTag = tag.Id" disabled="@_busy">
+                                        <FluentIcon Value="@(new Icons.Regular.Size16.Dismiss())" />
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="pl-side-empty" style="margin-top: 16px;">No tags yet.</div>
+                }
+            </FluentCard>
+        </div>
+    </div>
+
+    <p class="pl-hint" style="margin-top: 16px;">
+        Deleting a category or tag removes it from every post that uses it. The posts themselves are not deleted.
+    </p>
+}
+
+@code {
+    private List<PostCategoryDto> _categories = new();
+    private List<PostTagDto> _tags = new();
+
+    private string _newCategory = "";
+    private string _newTag = "";
+    private string _categoryError = "";
+    private string _tagError = "";
+    private int? _pendingCategory;
+    private int? _pendingTag;
+    private bool _loading = true;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+        _loading = false;
+    }
+
+    private async Task ReloadAsync()
+    {
+        // Sequential: these handlers share one scoped DbContext.
+        _categories = await Mediator.Send(new GetPostCategoriesQuery());
+        _tags = await Mediator.Send(new GetPostTagsQuery());
+    }
+
+    private static async Task OnKeyDown(KeyboardEventArgs e, Func<Task> action)
+    {
+        if (e.Key == "Enter") await action();
+    }
+
+    private async Task AddCategoryAsync()
+    {
+        _categoryError = "";
+        var name = _newCategory.Trim();
+        if (string.IsNullOrWhiteSpace(name) || _busy) return;
+
+        var slug = SlugHelper.Slugify(name);
+        if (string.IsNullOrEmpty(slug)) { _categoryError = "Enter a name with letters or numbers."; return; }
+        if (_categories.Any(c => c.Slug == slug)) { _categoryError = "That category already exists."; return; }
+
+        _busy = true;
+        try
+        {
+            await Mediator.Send(new CreatePostCategoryCommand(name, slug));
+            _newCategory = "";
+            await ReloadAsync();
+        }
+        catch (Exception ex) { _categoryError = ex.Message; }
+        _busy = false;
+    }
+
+    private async Task AddTagAsync()
+    {
+        _tagError = "";
+        var name = _newTag.Trim();
+        if (string.IsNullOrWhiteSpace(name) || _busy) return;
+
+        var slug = SlugHelper.Slugify(name);
+        if (string.IsNullOrEmpty(slug)) { _tagError = "Enter a name with letters or numbers."; return; }
+        if (_tags.Any(t => t.Slug == slug)) { _tagError = "That tag already exists."; return; }
+
+        _busy = true;
+        try
+        {
+            await Mediator.Send(new CreatePostTagCommand(name, slug));
+            _newTag = "";
+            await ReloadAsync();
+        }
+        catch (Exception ex) { _tagError = ex.Message; }
+        _busy = false;
+    }
+
+    private async Task ConfirmDeleteCategoryAsync(int id)
+    {
+        _categoryError = "";
+        _busy = true;
+        try
+        {
+            await Mediator.Send(new DeletePostCategoryCommand(id));
+            _pendingCategory = null;
+            await ReloadAsync();
+        }
+        catch (Exception ex) { _categoryError = ex.Message; }
+        _busy = false;
+    }
+
+    private async Task ConfirmDeleteTagAsync(int id)
+    {
+        _tagError = "";
+        _busy = true;
+        try
+        {
+            await Mediator.Send(new DeletePostTagCommand(id));
+            _pendingTag = null;
+            await ReloadAsync();
+        }
+        catch (Exception ex) { _tagError = ex.Message; }
+        _busy = false;
+    }
+}

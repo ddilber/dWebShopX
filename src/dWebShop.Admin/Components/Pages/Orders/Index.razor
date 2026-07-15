@@ -76,16 +76,16 @@
             <TemplateColumn Title="Customer">
                 <div class="order-customer-cell" style="cursor:pointer;" @onclick="@(() => Navigation.NavigateTo($"/orders/{context.Guid}"))">
                     <span class="order-avatar" title="@context.PartnerName">@GetInitials(context.PartnerName)</span>
-                    <div>
-                        <div style="font-weight: 500;">@context.PartnerName</div>
-                        <div class="order-customer-email">@context.PartnerEmail</div>
+                    <div class="order-customer-text">
+                        <div class="order-customer-name">@context.PartnerName</div>
+                        <div class="order-customer-email" title="@context.PartnerEmail">@context.PartnerEmail</div>
                     </div>
                 </div>
             </TemplateColumn>
             <PropertyColumn Title="Date" Property="@(o => o.Created.ToString("dd MMM yyyy, HH:mm"))" />
             <PropertyColumn Title="Items" Property="@(o => o.ItemCount)" />
             <TemplateColumn Title="Total">
-                <strong style="font-variant-numeric: tabular-nums;">@context.Total.ToString("C2")</strong>
+                <strong style="font-variant-numeric: tabular-nums;">@AdminFormat.Money(context.Total)</strong>
             </TemplateColumn>
             <TemplateColumn Title="Payment">
                 <span class="order-badge payment-@context.PaymentStatus.ToLower()">@context.PaymentStatus</span>

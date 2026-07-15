@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="@Assets["dWebShop.Admin.styles.css"]" />
     <link rel="stylesheet" href="_content/Microsoft.FluentUI.AspNetCore.Components/css/reboot.css" />
     <link href="_content/Microsoft.FluentUI.AspNetCore.Components/Microsoft.FluentUI.AspNetCore.Components.bundle.scp.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
     <ImportMap />
     <HeadOutlet />
     <script>
@@ -21,6 +22,9 @@
     <Routes @rendermode="RenderModeForPage" />
     <ReconnectModal />
     <script src="_content/Microsoft.FluentUI.AspNetCore.Components/js/loading-theme.js" type="module"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+    <script src="_content/Blazored.TextEditor/quill-blot-formatter.min.js"></script>
+    <script src="_content/Blazored.TextEditor/Blazored-BlazorQuill.js"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script>
         // Scroll to top on Blazor navigation. Admin runs InteractiveServer at root, so navigation

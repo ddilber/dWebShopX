@@ -14,6 +14,44 @@
 }
 else
 {
+    var _canonical = _category is not null
+        ? $"https://asgifiks.ba/shop/{Brand}/{_category.Slug}"
+        : $"https://asgifiks.ba/shop/{Brand}";
+    var _metaDesc = _category is not null && !string.IsNullOrWhiteSpace(_category.Description)
+        ? _category.Description
+        : (!string.IsNullOrWhiteSpace(_brand.Tagline) ? _brand.Tagline : $"{_brand.Name} proizvodi — ASGifiks web shop.");
+
+    <HeadContent>
+        <link rel="canonical" href="@_canonical" />
+        <meta name="description" content="@_metaDesc" />
+        <meta property="og:title" content="@($"{_title} — Web Shop")" />
+        <meta property="og:description" content="@_metaDesc" />
+        <meta property="og:url" content="@_canonical" />
+        @Seo.OgImageTags(null, _title)
+        @Seo.JsonLd(new JsonObject {
+            ["@type"] = "CollectionPage",
+            ["name"] = _title,
+            ["description"] = _metaDesc,
+            ["url"] = _canonical
+        })
+        @Seo.JsonLd(new JsonObject {
+            ["@type"] = "BreadcrumbList",
+            ["itemListElement"] = new JsonArray(
+                new[] {
+                    (JsonNode)new JsonObject { ["@type"] = "ListItem", ["position"] = 1, ["name"] = "Web Shop", ["item"] = "https://asgifiks.ba/shop" },
+                    new JsonObject { ["@type"] = "ListItem", ["position"] = 2, ["name"] = _brand.Name, ["item"] = $"https://asgifiks.ba/shop/{Brand}" }
+                }
+                .Concat(_ancestors.Select((a, i) => (JsonNode)new JsonObject {
+                    ["@type"] = "ListItem",
+                    ["position"] = 3 + i,
+                    ["name"] = a.Name,
+                    ["item"] = $"https://asgifiks.ba/shop/{Brand}/{a.Slug}"
+                }))
+                .ToArray()
+            )
+        })
+    </HeadContent>
+
     <div class="asg-shop-listing">
         <div class="asg-wrap">
             <nav class="asg-shop-crumbs">
@@ -74,7 +112,15 @@ else
                             {
                                 @foreach (var root in _cats)
                                 {
-                                    <li><a href="/shop/@Brand/@root.Slug">▸ @root.Name</a></li>
+                                    var slugs = root.SelfAndDescendantSlugs().ToHashSet();
+                                    var rootCount = _baseProducts.Count(p => p.CategorySlug != null && slugs.Contains(p.CategorySlug));
+                                    <li>
+                                        <a href="/shop/@Brand/@root.Slug">
+                                            <span class="ic" aria-hidden="true"></span>
+                                            <span class="lbl">@root.Name</span>
+                                            <span class="count">@rootCount</span>
+                                        </a>
+                                    </li>
                                 }
                             }
                             else
@@ -89,10 +135,28 @@ else
                                 var parentUrl = parentSlug is not null
                                     ? $"/shop/{Brand}/{parentSlug}"
                                     : $"/shop/{Brand}";
-                                <li><a href="@parentUrl" class="back">« @parentName</a></li>
+                                <li>
+                                    <a href="@parentUrl" class="back">
+                                        <span class="ic" aria-hidden="true"></span>
+                                        <span class="lbl">@parentName</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <span class="asg-cat-current" aria-current="page">
+                                        <span class="lbl">@_category.Name</span>
+                                    </span>
+                                </li>
                                 @foreach (var child in _category.Children)
                                 {
-                                    <li><a href="/shop/@Brand/@child.Slug">▸ @child.Name</a></li>
+                                    var slugs = child.SelfAndDescendantSlugs().ToHashSet();
+                                    var childCount = _baseProducts.Count(p => p.CategorySlug != null && slugs.Contains(p.CategorySlug));
+                                    <li>
+                                        <a href="/shop/@Brand/@child.Slug" class="child">
+                                            <span class="ic" aria-hidden="true"></span>
+                                            <span class="lbl">@child.Name</span>
+                                            <span class="count">@childCount</span>
+                                        </a>
+                                    </li>
                                 }
                             }
                         </ul>
