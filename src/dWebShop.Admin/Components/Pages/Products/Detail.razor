@@ -116,7 +116,8 @@ else
                         </div>
                         <div class="field span-2">
                             <span class="field-label">Full description</span>
-                            <RichTextEditor @ref="_detailEditor" Html="@_form.DetailDescription" />
+                            @* Keyed by product so the Quill editor remounts with the new HTML when the slug changes. *@
+                            <RichTextEditor @key="_loadedSlug" @ref="_detailEditor" Html="@_form.DetailDescription" />
                         </div>
                     </div>
                 </div>
@@ -541,7 +542,7 @@ else
                     <div class="field">
                         <label for="prod-brand" class="field-label">Brand</label>
                         <select id="prod-brand" class="ds-select" @bind="_form.BrandId">
-                            <option value="">— No brand —</option>
+                            <option value="0">— No brand —</option>
                             @foreach (var b in _brands)
                             {
                                 <option value="@b.Id">@b.Name</option>
@@ -549,15 +550,17 @@ else
                         </select>
                     </div>
                     <div class="field">
-                        <span class="field-label">Categories</span>
+                        <span class="field-label">Categories @(_form.CategoryIds.Count > 0 ? $"({_form.CategoryIds.Count} selected)" : "")</span>
                         @if (_categories.Count == 0)
                         {
                             <span class="field-hint">No categories defined yet.</span>
                         }
                         else
                         {
+                            <input class="ds-input" type="search" aria-label="Filter categories" placeholder="Filter categories…"
+                                   @bind="_categoryFilter" @bind:event="oninput" />
                             <div class="pl-check-list" style="max-height:220px;overflow-y:auto">
-                                @foreach (var c in _categories)
+                                @foreach (var c in VisibleCategories)
                                 {
                                     var catId = c.Id;
                                     <label class="pl-check">
@@ -648,10 +651,33 @@ else
 
     private FormModel _form = new();
 
+    // Slug of the product currently loaded into the form. Blazor reuses this
+    // component when navigating between /products/{slug} URLs, so the product
+    // is (re)loaded in OnParametersSetAsync whenever the slug changes.
+    private string? _loadedSlug;
+
     protected override async Task OnInitializedAsync()
     {
         _brands = await Mediator.Send(new GetBrandsQuery());
         _categories = await Mediator.Send(new GetCategoriesQuery());
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Slug == _loadedSlug) return;
+        _loadedSlug = Slug;
+
+        _loading = true;
+        _detail = null;
+        _form = new FormModel();
+        _skus = [];
+        _options = [];
+        _activeTab = 0;
+        _showSkuForm = false;
+        _pendingImageIdx = null;
+        _categoryFilter = "";
+        _error = null;
+        _saved = false;
 
         if (!_isNew)
         {
@@ -737,6 +763,18 @@ else
         }
         return map;
     }
+
+    private string _categoryFilter = "";
+
+    // Ticked categories first (so they're visible without scrolling), then the
+    // rest, narrowed by the filter box. Ticked ones always stay listed.
+    private IEnumerable<CategoryDto> VisibleCategories =>
+        _categories
+            .Where(c => _form.CategoryIds.Contains(c.Id)
+                     || string.IsNullOrWhiteSpace(_categoryFilter)
+                     || c.Name.Contains(_categoryFilter, StringComparison.OrdinalIgnoreCase)
+                     || (c.ParentName?.Contains(_categoryFilter, StringComparison.OrdinalIgnoreCase) ?? false))
+            .OrderByDescending(c => _form.CategoryIds.Contains(c.Id));
 
     private void ToggleCategory(int id, bool selected)
     {
@@ -841,9 +879,8 @@ else
                         id, _form.Name, _form.Sku, _form.ExtRef, _form.Slug,
                         _form.Description, _form.Status, _form.IsFeatured, brandId, _form.DetailDescription, catIds));
 
-                // The route is keyed by slug, not id. Force a load: the same component
-                // instance would otherwise be reused and never fetch the new product.
-                Navigation.NavigateTo($"/products/{Uri.EscapeDataString(_form.Slug)}", forceLoad: true);
+                // The route is keyed by slug, not id; OnParametersSetAsync loads it.
+                Navigation.NavigateTo($"/products/{Uri.EscapeDataString(_form.Slug)}");
             }
             else
             {
@@ -853,8 +890,12 @@ else
                 _saved = true;
 
                 // Keep the address bar on the current slug so a reload still finds the product.
+                // Mark it loaded first: it's the same product, so no reload is needed.
                 if (_form.Slug != Slug)
+                {
+                    _loadedSlug = _form.Slug;
                     Navigation.NavigateTo($"/products/{Uri.EscapeDataString(_form.Slug)}", replace: true);
+                }
             }
         }
         catch (Exception ex)

@@ -318,7 +318,10 @@ else
     private ImagePickerDialog _ogPicker = default!;
     private ImagePickerDialog _galleryPicker = default!;
 
-    private bool _isNew;
+    // Derived from the route, not captured once: after "Create" the page navigates to
+    // /inspirations/{id} and Blazor reuses this component, so a stored flag would
+    // stay true and the next Save would create a duplicate.
+    private bool _isNew => Id is null;
     private bool _loading = true;
     private bool _saving;
     private bool _saved;
@@ -360,7 +363,6 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _isNew = Id is null;
         if (!_isNew)
         {
             var dto = await Mediator.Send(new GetInspirationByIdQuery(Id!.Value));

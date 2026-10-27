@@ -16,7 +16,7 @@
         @if (_result is not null)
         {
             <p class="admin-page-sub">
-                @_result.FilteredCount orders
+                @_result.FilteredCount order@(_result.FilteredCount == 1 ? "" : "s")
                 @if (_pendingCount > 0) { <text> · @_pendingCount pending fulfillment</text> }
             </p>
         }
