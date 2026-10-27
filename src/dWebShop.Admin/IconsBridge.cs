@@ -28,6 +28,7 @@ public static class Icons
             public class ChevronRight : R16.ChevronRight { }
             public class Dismiss : R16.Dismiss { }
             public class DismissCircle : R16.DismissCircle { }
+            public class Print : R16.Print { }
             public class DocumentText : R16.DocumentText { }
             public class Edit : R16.Edit { }
             public class Filter : R16.Filter { }

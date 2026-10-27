@@ -1443,3 +1443,10 @@ button { font-family: inherit; }
   background-repeat: no-repeat; background-position: 1rem center; background-size: 1.8rem;
 }
 
+
+/* ── Print (e.g. Orders → Print) ─────────────────────────────── */
+@media print {
+  .shell { display: block; height: auto; background: #fff; }
+  .shell-nav, .shell-top, .admin-page-actions, .no-print { display: none !important; }
+  .shell-main, .shell-main-inner { overflow: visible !important; height: auto !important; padding: 0 !important; }
+}

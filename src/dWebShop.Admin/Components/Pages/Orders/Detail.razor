@@ -8,6 +8,9 @@
 @using dWebShop.Domain.Entities.Orders
 @inject IMediator Mediator
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
+@using dWebShop.Application.Services
+@inject IEmailService EmailService
 
 <PageTitle>Order Detail — dWebShop Admin</PageTitle>
 
@@ -40,9 +43,14 @@ else
             <FluentButton Appearance="ButtonAppearance.Transparent"
                           IconStart="@(new Icons.Regular.Size16.ArrowLeft())"
                           OnClick="@(() => Navigation.NavigateTo("/orders"))">Back</FluentButton>
-            <FluentButton Appearance="ButtonAppearance.Transparent" IconStart="@(new Icons.Regular.Size16.ArrowDownload())">Print invoice</FluentButton>
-            <FluentButton Appearance="ButtonAppearance.Transparent" IconStart="@(new Icons.Regular.Size16.Mail())">Resend confirmation</FluentButton>
-            <select class="admin-search-input" style="min-width: 130px;" @onchange="OnStatusChanged">
+            <FluentButton Appearance="ButtonAppearance.Transparent" IconStart="@(new Icons.Regular.Size16.Print())"
+                          OnClick="PrintAsync">Print</FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Transparent" IconStart="@(new Icons.Regular.Size16.Mail())"
+                          Disabled="@(_resending || string.IsNullOrWhiteSpace(_order.PartnerEmail))"
+                          OnClick="ResendConfirmationAsync">
+                @(_resending ? "Sending…" : "Resend confirmation")
+            </FluentButton>
+            <select class="admin-search-input" style="min-width: 130px;" aria-label="Order status" disabled="@_statusBusy" @onchange="OnStatusChanged">
                 @foreach (var s in Enum.GetValues<OrderStatus>())
                 {
                     <option value="@s" selected="@(_order.Status == s)">@s</option>
@@ -52,12 +60,30 @@ else
             {
                 <FluentButton Appearance="ButtonAppearance.Primary"
                               IconStart="@(new Icons.Regular.Size16.CheckmarkCircle())"
+                              Disabled="@_statusBusy"
                               OnClick="AdvanceStatus">@NextActionLabel</FluentButton>
             }
         </div>
     </div>
 
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <FluentMessageBar Intent="MessageBarIntent.Error" Style="margin-bottom: 16px;">@_error</FluentMessageBar>
+    }
+    @if (!string.IsNullOrEmpty(_success))
+    {
+        <FluentMessageBar Intent="MessageBarIntent.Success" Style="margin-bottom: 16px;">@_success</FluentMessageBar>
+    }
+
     @* ── Timeline ──────────────────────────────────────── *@
+    @if (_order.Status is OrderStatus.Cancelled or OrderStatus.Refunded)
+    {
+        <FluentMessageBar Intent="MessageBarIntent.Warning" Style="margin-bottom: 16px;">
+            This order is @_order.Status.ToString().ToLower() — fulfilment steps no longer apply.
+        </FluentMessageBar>
+    }
+    else
+    {
     <FluentCard Style="margin-bottom: 16px; padding: 20px 24px;">
         <div class="order-timeline">
             @foreach (var (step, idx) in _timelineSteps.Select((s, i) => (s, i)))
@@ -83,6 +109,7 @@ else
             }
         </div>
     </FluentCard>
+    }
 
     @* ── Detail grid ───────────────────────────────────── *@
     <div class="admin-detail-grid">
@@ -98,7 +125,7 @@ else
                         <span style="color: var(--colorNeutralForeground3); font-size: 13px;">@_order.Items.Count items · @AdminFormat.Money(_order.Items.Sum(i => i.Price * i.Quantity))</span>
                         <FluentButton Appearance="ButtonAppearance.Transparent"
                                       IconStart="@(new Icons.Regular.Size16.Add())"
-                                      Style="font-size: 12px;"
+                                      Style="font-size: 12px;" Class="no-print"
                                       OnClick="OpenAddItem">Add item</FluentButton>
                     </div>
                 </div>
@@ -118,9 +145,6 @@ else
                 </div>
                 <div class="order-totals">
                     @{ var subtotal = _order.Items.Sum(i => i.Price * i.Quantity); }
-                    <div><span>Subtotal</span><span>@AdminFormat.Money(subtotal)</span></div>
-                    <div><span>Shipping (Standard)</span><span>@AdminFormat.Money(0m)</span></div>
-                    <div><span>Tax</span><span>@AdminFormat.Money(0m)</span></div>
                     <div class="grand">
                         <span>Total</span>
                         <span>@AdminFormat.Money(subtotal)</span>
@@ -128,28 +152,21 @@ else
                 </div>
             </FluentCard>
 
-            @* Activity *@
-            <FluentCard>
-                <div class="order-card-title" style="margin-bottom: 16px;">Activity</div>
-                <div class="order-activity">
-                    <div class="act-row">
-                        <span class="order-avatar act-avatar">SY</span>
-                        <div class="act-main">
-                            <div><strong>System</strong> Order placed and payment captured</div>
-                            <div class="act-time">@_order.Created.ToString("dd MMM, HH:mm")</div>
-                        </div>
-                    </div>
-                    <div class="act-row">
-                        <span class="order-avatar act-avatar">SY</span>
-                        <div class="act-main">
-                            <div><strong>System</strong> Order confirmation sent to customer</div>
-                            <div class="act-time">@_order.Created.ToString("dd MMM, HH:mm")</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="act-note-row">
-                    <span class="order-avatar act-avatar">A</span>
-                    <input class="act-note-input" placeholder="Add an internal note…" />
+            @* Internal notes — stored on the order, visible to staff only (not printed) *@
+            <FluentCard Class="no-print">
+                <div class="order-card-title" style="margin-bottom: 12px;">Internal notes</div>
+                <textarea class="co-textarea" rows="3" aria-label="Internal notes"
+                          placeholder="Notes visible to staff only…" @bind="_notes" @bind:event="oninput"></textarea>
+                <div style="display:flex; align-items:center; gap: 12px; margin-top: 8px;">
+                    <FluentButton Appearance="ButtonAppearance.Primary"
+                                  Disabled="@(_notesSaving || _notes == (_order.Notes ?? ""))"
+                                  OnClick="SaveNotesAsync">
+                        @(_notesSaving ? "Saving…" : "Save notes")
+                    </FluentButton>
+                    @if (_notesSaved)
+                    {
+                        <span style="font-size: 12px; color: var(--colorNeutralForeground3);">Saved.</span>
+                    }
                 </div>
             </FluentCard>
 
@@ -194,7 +211,7 @@ else
                 }
                 <FluentButton Appearance="ButtonAppearance.Transparent"
                               IconStart="@(new Icons.Regular.Size16.Edit())"
-                              Style="margin-top: 8px; font-size: 12px;"
+                              Style="margin-top: 8px; font-size: 12px;" Class="no-print"
                               OnClick="OpenAddressEdit">Edit</FluentButton>
             </FluentCard>
 
@@ -205,24 +222,10 @@ else
                     <FluentIcon Value="@(new Icons.Regular.Size16.Payment())" Style="color:var(--colorNeutralForeground3);" />
                     <span>@_order.Channel</span>
                 </div>
-                <div class="order-kv">
-                    <FluentIcon Value="@(new Icons.Regular.Size16.DocumentText())" Style="color:var(--colorNeutralForeground3);" />
-                    <span style="font-size:12px; color:var(--colorNeutralForeground2);">Payment reference</span>
-                </div>
                 <div style="margin-top: 8px;">
                     <span class="order-badge payment-@_order.PaymentStatus.ToLower()">@_order.PaymentStatus · @AdminFormat.Money(_order.Items.Sum(i => i.Price * i.Quantity))</span>
                 </div>
             </FluentCard>
-
-            @* Notes / Tags *@
-            @if (!string.IsNullOrEmpty(_order.Notes))
-            {
-                <FluentCard>
-                    <div class="order-card-title" style="margin-bottom: 8px;">Notes</div>
-                    <div style="font-size: 13px; color: var(--colorNeutralForeground2); line-height: 1.5;">@_order.Notes</div>
-                </FluentCard>
-            }
-
 
         </div>
     </div>
@@ -377,19 +380,22 @@ else
 
     private OrderDetailDto? _order;
     private bool _loading = true;
-    private bool _updating;
-    private string _note = "";
+    private bool _statusBusy;
+    private bool _resending;
+    private string _error = "";
+    private string _success = "";
 
-    private bool IsProcessingDone => _order?.Status is OrderStatus.Processing or OrderStatus.Shipped or OrderStatus.Delivered;
-    private bool IsShippedDone => _order?.Status is OrderStatus.Shipped or OrderStatus.Delivered;
-    private bool IsDeliveredDone => _order?.Status == OrderStatus.Delivered;
+    private string _notes = "";
+    private bool _notesSaving;
+    private bool _notesSaved;
 
+    // Only the placed time is recorded; later steps show a checkmark without a time.
     private record TimelineStep(string Label, Func<OrderDetailDto, string> Time);
 
     private static readonly TimelineStep[] _timelineSteps =
     [
         new("Placed",     o => o.Created.ToString("dd MMM, HH:mm")),
-        new("Paid",       o => o.Created.ToString("dd MMM, HH:mm")),
+        new("Paid",       o => "—"),
         new("Processing", o => "—"),
         new("Shipped",    o => "—"),
         new("Delivered",  o => "—"),
@@ -397,14 +403,20 @@ else
 
     private int StatusRank => _order?.Status switch
     {
-        OrderStatus.Pending    => 1,
-        OrderStatus.Processing => 2,
-        OrderStatus.Shipped    => 3,
-        OrderStatus.Delivered  => 4,
-        _                      => 1,
+        OrderStatus.Processing => 1,
+        OrderStatus.Shipped    => 2,
+        OrderStatus.Delivered  => 3,
+        _                      => 0,
     };
 
-    private bool IsStepDone(int stepIndex) => stepIndex < StatusRank;
+    // Step 0 (placed) is always done; "Paid" follows the payment status, the
+    // rest follow the fulfilment status.
+    private bool IsStepDone(int stepIndex) => stepIndex switch
+    {
+        0 => true,
+        1 => _order?.PaymentStatus == "Paid",
+        _ => stepIndex - 1 <= StatusRank,
+    };
 
     private OrderStatus? NextStatus => _order?.Status switch
     {
@@ -425,26 +437,82 @@ else
     protected override async Task OnInitializedAsync()
     {
         _order = await Mediator.Send(new GetOrderByGuidQuery(OrderGuid));
+        _notes = _order?.Notes ?? "";
         _loading = false;
     }
 
     private async Task AdvanceStatus()
     {
         if (_order is null || !NextStatus.HasValue) return;
-        await Mediator.Send(new UpdateOrderStatusCommand(_order.Id, NextStatus.Value));
-        _order = await Mediator.Send(new GetOrderByGuidQuery(OrderGuid));
-        StateHasChanged();
+        await SetStatusAsync(NextStatus.Value);
     }
 
     private async Task OnStatusChanged(ChangeEventArgs e)
     {
         if (_order is null) return;
         if (Enum.TryParse<OrderStatus>(e.Value?.ToString(), out var newStatus) && newStatus != _order.Status)
+            await SetStatusAsync(newStatus);
+    }
+
+    private async Task SetStatusAsync(OrderStatus status)
+    {
+        _error = "";
+        _success = "";
+        _statusBusy = true;
+        try
         {
-            await Mediator.Send(new UpdateOrderStatusCommand(_order.Id, newStatus));
+            await Mediator.Send(new UpdateOrderStatusCommand(_order!.Id, status));
             _order = await Mediator.Send(new GetOrderByGuidQuery(OrderGuid));
-            StateHasChanged();
+            _success = $"Status changed to {status}.";
         }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        _statusBusy = false;
+    }
+
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("print");
+
+    private async Task ResendConfirmationAsync()
+    {
+        if (_order is null) return;
+        _error = "";
+        _success = "";
+        _resending = true;
+        try
+        {
+            var items = _order.Items.Select(i => new OrderEmailItem(i.ProductName, i.SKU, i.Quantity, i.Price));
+            await EmailService.SendOrderConfirmationToClientAsync(
+                _order.PartnerEmail, _order.PartnerName, _order.Guid, items,
+                _order.Items.Sum(i => i.Price * i.Quantity), _order.DeliveryAddress ?? "");
+            _success = $"Order confirmation sent to {_order.PartnerEmail}.";
+        }
+        catch (Exception ex)
+        {
+            _error = $"Could not send the confirmation: {ex.Message}";
+        }
+        _resending = false;
+    }
+
+    private async Task SaveNotesAsync()
+    {
+        if (_order is null) return;
+        _error = "";
+        _notesSaved = false;
+        _notesSaving = true;
+        try
+        {
+            await Mediator.Send(new UpdateOrderNotesCommand(_order.Id, _notes));
+            _order = _order with { Notes = string.IsNullOrWhiteSpace(_notes) ? null : _notes.Trim() };
+            _notes = _order.Notes ?? "";
+            _notesSaved = true;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        _notesSaving = false;
     }
 
     // ── Add item ──────────────────────────────────────────
@@ -508,8 +576,10 @@ else
     private async Task SaveAddItem()
     {
         if (_order is null || _selectedProduct is null || !_selectedSkuId.HasValue) return;
-        _addItemSaving = true;
         _addItemError = null;
+        if (_addItemQty < 1) { _addItemError = "Quantity must be at least 1."; return; }
+        if (_addItemPrice < 0) { _addItemError = "Unit price can't be negative."; return; }
+        _addItemSaving = true;
         try
         {
             await Mediator.Send(new AddOrderItemCommand(

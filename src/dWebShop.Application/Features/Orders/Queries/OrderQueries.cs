@@ -172,7 +172,10 @@ public record GetAllOrdersQuery(
     int Page = 1,
     int PageSize = 20,
     string? Search = null,
-    OrderStatus? StatusFilter = null)
+    OrderStatus? StatusFilter = null,
+    string? Channel = null,
+    string? PaymentStatus = null,
+    DateTime? CreatedFrom = null)
     : IRequest<AdminOrderListResult>;
 
 public class GetAllOrdersQueryHandler(IAppDbContext db)
@@ -185,10 +188,20 @@ public class GetAllOrdersQueryHandler(IAppDbContext db)
             .Include(o => o.Partner)
             .AsQueryable();
 
+        if (!string.IsNullOrWhiteSpace(request.Channel))
+            baseQuery = baseQuery.Where(o => o.Channel == request.Channel);
+        if (!string.IsNullOrWhiteSpace(request.PaymentStatus))
+            baseQuery = baseQuery.Where(o => o.PaymentStatus == request.PaymentStatus);
+        if (request.CreatedFrom.HasValue)
+            baseQuery = baseQuery.Where(o => o.Created >= request.CreatedFrom.Value);
+
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var s = request.Search.ToLower();
+            // "#123" or "123" also matches the order number.
+            var orderId = int.TryParse(s.TrimStart('#'), out var n) ? n : (int?)null;
             baseQuery = baseQuery.Where(o =>
+                (orderId != null && o.Id == orderId) ||
                 (o.Partner != null && (
                     o.Partner.FirstName.ToLower().Contains(s) ||
                     o.Partner.LastName.ToLower().Contains(s) ||

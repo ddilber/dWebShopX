@@ -21,6 +21,10 @@
 {
     <div style="padding:48px;text-align:center;color:var(--fg-3);">Loading…</div>
 }
+else if (_notFound)
+{
+    <FluentMessageBar Intent="MessageBarIntent.Error">Article not found.</FluentMessageBar>
+}
 else
 {
     <div class="page-head">
@@ -36,7 +40,20 @@ else
             <button class="ds-btn ds-btn-subtle" @onclick="@(() => Navigation.NavigateTo("/inspirations"))">Cancel</button>
             @if (!_isNew)
             {
-                <button class="ds-btn" style="color:var(--danger);border-color:var(--danger)" @onclick="DeleteConfirm">Delete</button>
+                @if (_confirmingDelete)
+                {
+                    <button class="ds-btn ds-btn-subtle" disabled="@_deleting"
+                            @onclick="@(() => _confirmingDelete = false)">Keep</button>
+                    <button class="ds-btn" style="color:var(--danger);border-color:var(--danger)"
+                            disabled="@_deleting" @onclick="DeleteConfirm">
+                        @(_deleting ? "Deleting…" : "Confirm delete")
+                    </button>
+                }
+                else
+                {
+                    <button class="ds-btn" style="color:var(--danger);border-color:var(--danger)"
+                            @onclick="@(() => _confirmingDelete = true)">Delete</button>
+                }
             }
             <button class="ds-btn" style="background:var(--accent-rest);color:white;border-color:var(--accent-rest)" @onclick="Save" disabled="@_saving">
                 @(_saving ? "Saving…" : (_isNew ? "Create" : "Save changes"))
@@ -48,6 +65,12 @@ else
     {
         <div style="background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger);border-radius:var(--r-md);padding:var(--sp-12) var(--sp-16);margin-bottom:var(--sp-16);font-size:var(--fs-300)">
             @_error
+        </div>
+    }
+    @if (_saved)
+    {
+        <div style="background:var(--success-bg);color:var(--success);border:1px solid var(--success);border-radius:var(--r-md);padding:var(--sp-12) var(--sp-16);margin-bottom:var(--sp-16);font-size:var(--fs-300)">
+            Article saved.
         </div>
     }
 
@@ -287,6 +310,10 @@ else
     private bool _isNew;
     private bool _loading = true;
     private bool _saving;
+    private bool _saved;
+    private bool _notFound;
+    private bool _confirmingDelete;
+    private bool _deleting;
     private string _error = "";
 
     private string _title = "";
@@ -326,6 +353,7 @@ else
         if (!_isNew)
         {
             var dto = await Mediator.Send(new GetInspirationByIdQuery(Id!.Value));
+            _notFound = dto is null;
             if (dto is not null)
             {
                 _title = dto.Title;
@@ -384,6 +412,7 @@ else
     private async Task Save()
     {
         _saving = true;
+        _saved = false;
         _error = "";
         try
         {
@@ -403,6 +432,7 @@ else
                     _authors, _tags, _content, _linkedProductSlugs,
                     ContentType, _isFeatured, _published, _brandSlug,
                     _coverImage, GalleryJson, _metaTitle, _metaDescription, _ogImage));
+                _saved = true;
             }
         }
         catch (Exception ex)
@@ -414,6 +444,8 @@ else
 
     private async Task DeleteConfirm()
     {
+        _error = "";
+        _deleting = true;
         try
         {
             await Mediator.Send(new DeleteInspirationCommand(Id!.Value));
@@ -422,6 +454,8 @@ else
         catch (Exception ex)
         {
             _error = ex.Message;
+            _deleting = false;
+            _confirmingDelete = false;
         }
     }
 }

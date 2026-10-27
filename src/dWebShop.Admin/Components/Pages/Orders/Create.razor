@@ -46,7 +46,8 @@
             <div class="co-picker-row">
                 <div class="co-picker-field">
                     <label class="co-label">Product</label>
-                    <select class="co-select" @onchange="OnProductChanged" disabled="@(_products is null)">
+                    <select class="co-select" value="@(_selectedProductId?.ToString() ?? "")"
+                            @onchange="OnProductChanged" disabled="@(_products is null)">
                         <option value="">— select a product —</option>
                         @if (_products is not null)
                         {
@@ -60,7 +61,8 @@
 
                 <div class="co-picker-field">
                     <label class="co-label">Variant / SKU</label>
-                    <select class="co-select" @onchange="OnSkuChanged" disabled="@(_skus is null || !_skus.Any())">
+                    <select class="co-select" value="@(_selectedSkuId?.ToString() ?? "")"
+                            @onchange="OnSkuChanged" disabled="@(_skus is null || !_skus.Any())">
                         <option value="">— select SKU —</option>
                         @if (_skus is not null)
                         {

@@ -13,6 +13,7 @@
 @using dWebShop.Admin.Components.Shared
 @inject IMediator Mediator
 @inject NavigationManager Navigation
+@inject IConfiguration Configuration
 
 <PageTitle>@(_isNew ? "New product" : _form.Name) — dWebShop Admin</PageTitle>
 
@@ -169,7 +170,7 @@ else
                                     </div>
                                 </div>
                             }
-                            <div class="media-cell media-add">
+                            <div class="media-cell media-add" @onclick="@(async () => await _imagePicker.Show())">
                                 <svg viewBox="0 0 20 20" fill="currentColor" width="24" height="24">
                                     <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"/>
                                 </svg>
@@ -185,7 +186,7 @@ else
                                 <path d="M4 32l10-10 8 8 6-6 16 16"/>
                             </svg>
                             <p style="margin:0;font-weight:var(--fw-semibold)">No images yet</p>
-                            <p style="margin:8px 0 0;font-size:var(--fs-200)">Drag and drop images here, or click Upload image</p>
+                            <p style="margin:8px 0 0;font-size:var(--fs-200)">Click <strong>Pick image</strong> to add one</p>
                         </div>
                     }
                 </div>
@@ -196,15 +197,15 @@ else
                 <!-- Pricing & Inventory -->
                 <div class="ds-card">
                     <div class="card-head">
-                        <div class="card-title">Pricing</div>
+                        <div class="card-title">Pricing &amp; stock</div>
                     </div>
                     @if (_isNew)
                     {
-                        <div style="color:var(--fg-3);font-size:var(--fs-300)">Save the product first to manage pricing.</div>
+                        <div style="color:var(--fg-3);font-size:var(--fs-300)">Save the product first to manage pricing and stock.</div>
                     }
                     else if (_skus.Count == 0)
                     {
-                        <div style="color:var(--fg-3);font-size:var(--fs-300)">No SKUs yet. Add a SKU on the Variants tab to define pricing.</div>
+                        <div style="color:var(--fg-3);font-size:var(--fs-300)">No SKUs yet. Add a SKU on the Variants tab to define pricing and stock.</div>
                     }
                     else if (_skus.Count == 1)
                     {
@@ -217,7 +218,7 @@ else
                         @if (_skuPriceSaved)
                         {
                             <div style="background:var(--success-bg,#f0fdf4);color:var(--success,#16a34a);border:1px solid var(--success,#16a34a);border-radius:var(--r-md);padding:var(--sp-8) var(--sp-12);margin-bottom:var(--sp-12);font-size:var(--fs-300)">
-                                Prices updated.
+                                Pricing and stock updated.
                             </div>
                         }
                         <div class="form-grid cols-3">
@@ -235,55 +236,28 @@ else
                                 <input class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_singleSkuCostPrice" />
                                 <span class="field-hint">Not shown to customers</span>
                             </div>
+                            <div class="field">
+                                <label class="field-label">Stock quantity</label>
+                                <input class="ds-input" type="number" min="0" placeholder="0" @bind="_singleSkuStock" />
+                            </div>
+                            <div class="field">
+                                <label class="field-label">Low stock threshold</label>
+                                <input class="ds-input" type="number" min="0" placeholder="5" @bind="_singleSkuLowStock" />
+                                <span class="field-hint">Listed under <strong>Low stock</strong> at or below this</span>
+                            </div>
                         </div>
                         <div style="margin-top:var(--sp-16)">
                             <button class="ds-btn" style="background:var(--accent-rest);color:white;border-color:var(--accent-rest)" @onclick="SaveSingleSkuPriceAsync" disabled="@_skuPriceSaving">
-                                @(_skuPriceSaving ? "Saving…" : "Update prices")
+                                @(_skuPriceSaving ? "Saving…" : "Update pricing & stock")
                             </button>
                         </div>
                     }
                     else
                     {
                         <div style="color:var(--fg-3);font-size:var(--fs-300)">
-                            This product has multiple variants. Please set prices individually on the <strong>Variants</strong> tab.
+                            This product has multiple variants. Set prices and stock individually on the <strong>Variants</strong> tab.
                         </div>
                     }
-                </div>
-                <div class="ds-card">
-                    <div class="card-head">
-                        <div class="card-title">Inventory</div>
-                    </div>
-                    <div class="form-grid">
-                        <div class="field">
-                            <label class="field-label">Stock quantity</label>
-                            <input class="ds-input" type="number" min="0" placeholder="0" @bind="_form.Stock" />
-                        </div>
-                        <div class="field">
-                            <label class="field-label">Low stock threshold</label>
-                            <input class="ds-input" type="number" min="0" placeholder="5" @bind="_form.LowStockThreshold" />
-                        </div>
-                    </div>
-                    <div class="card-divider"></div>
-                    <div class="ds-toggle-row">
-                        <div class="ds-toggle-text">
-                            <div class="ds-toggle-label">Track stock</div>
-                            <div class="ds-toggle-sub">Automatically update availability based on stock</div>
-                        </div>
-                        <label class="ds-toggle">
-                            <input type="checkbox" @bind="_form.TrackStock" />
-                            <span class="ds-toggle-track"></span>
-                        </label>
-                    </div>
-                    <div class="ds-toggle-row">
-                        <div class="ds-toggle-text">
-                            <div class="ds-toggle-label">Allow backorders</div>
-                            <div class="ds-toggle-sub">Let customers order when out of stock</div>
-                        </div>
-                        <label class="ds-toggle">
-                            <input type="checkbox" @bind="_form.AllowBackorders" />
-                            <span class="ds-toggle-track"></span>
-                        </label>
-                    </div>
                 </div>
             }
 
@@ -439,7 +413,7 @@ else
                                     {
                                         <div class="field">
                                             <label class="field-label">@opt.Name</label>
-                                            <select class="ds-select" value="@_skuForm.OptionSelections.GetValueOrDefault(opt.Id)" @onchange="@(e => SetSkuOption(opt.Id, e.Value?.ToString()))">
+                                            <select class="ds-select" value="@(_skuForm.OptionSelections.TryGetValue(opt.Id, out var selVal) ? selVal.ToString() : "")" @onchange="@(e => SetSkuOption(opt.Id, e.Value?.ToString()))">
                                                 <option value="">— None —</option>
                                                 @foreach (var v in opt.Values)
                                                 {
@@ -494,21 +468,14 @@ else
                     <div class="card-head">
                         <div class="card-title">Search engine preview</div>
                     </div>
-                    <div style="background:var(--bg-layer-alt);border:1px solid var(--stroke-1);border-radius:var(--r-md);padding:var(--sp-16);margin-bottom:var(--sp-20)">
+                    <div style="background:var(--bg-layer-alt);border:1px solid var(--stroke-1);border-radius:var(--r-md);padding:var(--sp-16);margin-bottom:var(--sp-12)">
                         <div style="color:#1a0dab;font-size:18px;margin-bottom:4px">@(string.IsNullOrEmpty(_form.Name) ? "Product name" : _form.Name)</div>
-                        <div style="color:#006621;font-size:13px;margin-bottom:4px">dwebshop.com/products/@(string.IsNullOrEmpty(_form.Slug) ? "product-slug" : _form.Slug)</div>
+                        <div style="color:#006621;font-size:13px;margin-bottom:4px">@PublicHost/shop/p/@(string.IsNullOrEmpty(_form.Slug) ? "product-slug" : _form.Slug)</div>
                         <div style="color:#545454;font-size:13px">@(string.IsNullOrEmpty(_form.Description) ? "Product description will appear here…" : _form.Description)</div>
                     </div>
-                    <div class="form-grid cols-1">
-                        <div class="field">
-                            <label class="field-label">SEO title</label>
-                            <input class="ds-input" placeholder="Defaults to product name" />
-                        </div>
-                        <div class="field">
-                            <label class="field-label">Meta description</label>
-                            <textarea class="ds-textarea" rows="3" placeholder="Defaults to short description…"></textarea>
-                        </div>
-                    </div>
+                    <span class="field-hint">
+                        Search results use the product name, URL slug and short description — edit them on the <strong>General</strong> tab.
+                    </span>
                 </div>
             }
 
@@ -596,6 +563,8 @@ else
 	[Parameter] public string Slug { get; set; } = string.Empty;
 
     private bool _isNew => Slug == "new";
+    private string PublicHost =>
+        new Uri(Configuration["SiteUrl"] ?? "https://asgifiks.ba").Host;
     private string? PrimaryImage =>
         _skus.FirstOrDefault(s => s.ImagePath is not null)?.ImagePath
         ?? _detail?.Images.OrderBy(i => i.SortOrder).FirstOrDefault()?.Path;
@@ -622,6 +591,8 @@ else
     private decimal _singleSkuPrice;
     private decimal? _singleSkuCompareAtPrice;
     private decimal? _singleSkuCostPrice;
+    private int _singleSkuStock;
+    private int _singleSkuLowStock;
     private bool _skuPriceSaving;
     private bool _skuPriceSaved;
     private string? _skuPriceError;
@@ -703,13 +674,26 @@ else
             Tax = sku.Tax,
             StockQuantity = sku.StockQuantity,
             LowStockThreshold = sku.LowStockThreshold,
-            OptionSelections = sku.Options.ToDictionary(
-                o => _options.FirstOrDefault(op => op.Name == o.OptionName)?.Id ?? 0,
-                o => _options.SelectMany(op => op.Values).FirstOrDefault(v => v.Name == o.OptionValueName)?.Id ?? 0),
+            OptionSelections = MapOptionSelections(sku),
             ImagePath = sku.ImagePath,
         };
         _skuError = null;
         _showSkuForm = true;
+    }
+
+    // The SKU DTO only carries option/value names, so resolve them to ids within
+    // the matching option (value names like "Large" can repeat across options).
+    private Dictionary<int, int> MapOptionSelections(ProductSkuDto sku)
+    {
+        var map = new Dictionary<int, int>();
+        foreach (var o in sku.Options)
+        {
+            var option = _options.FirstOrDefault(op => op.Name == o.OptionName);
+            var value = option?.Values.FirstOrDefault(v => v.Name == o.OptionValueName);
+            if (option is not null && value is not null)
+                map[option.Id] = value.Id;
+        }
+        return map;
     }
 
     private void CloseSkuForm()
@@ -734,16 +718,15 @@ else
         _skuSaving = true;
         try
         {
+            var optVals = _skuForm.OptionSelections.Select(kv => (kv.Key, kv.Value)).ToList();
             if (_editingSkuId is null)
             {
-                var optVals = _skuForm.OptionSelections.Count > 0
-                    ? _skuForm.OptionSelections.Select(kv => (kv.Key, kv.Value)).ToList()
-                    : null;
-                await Mediator.Send(new CreateSkuCommand(0, _skuForm.Sku, _skuForm.ExtRef, _skuForm.Name, _skuForm.Gtin, _skuForm.Price, _skuForm.CompareAtPrice, _skuForm.CostPrice, _skuForm.Tax, _skuForm.StockQuantity, _skuForm.LowStockThreshold, _skuForm.ImagePath, optVals));
+                await Mediator.Send(new CreateSkuCommand(_detail!.Id, _skuForm.Sku, _skuForm.ExtRef, _skuForm.Name, _skuForm.Gtin, _skuForm.Price, _skuForm.CompareAtPrice, _skuForm.CostPrice, _skuForm.Tax, _skuForm.StockQuantity, _skuForm.LowStockThreshold, _skuForm.ImagePath, optVals.Count > 0 ? optVals : null));
             }
             else
             {
-                await Mediator.Send(new UpdateSkuCommand(_editingSkuId.Value, _skuForm.Sku, _skuForm.ExtRef, _skuForm.Name, _skuForm.Gtin, _skuForm.Price, _skuForm.CompareAtPrice, _skuForm.CostPrice, _skuForm.Tax, _skuForm.StockQuantity, _skuForm.LowStockThreshold, _skuForm.ImagePath));
+                // Always send the option list so clearing an option to "None" is saved too.
+                await Mediator.Send(new UpdateSkuCommand(_editingSkuId.Value, _skuForm.Sku, _skuForm.ExtRef, _skuForm.Name, _skuForm.Gtin, _skuForm.Price, _skuForm.CompareAtPrice, _skuForm.CostPrice, _skuForm.Tax, _skuForm.StockQuantity, _skuForm.LowStockThreshold, _skuForm.ImagePath, optVals));
             }
             _showSkuForm = false;
             await ReloadSkusAsync();
@@ -801,14 +784,27 @@ else
                 var id = await Mediator.Send(new CreateProductCommand(
                     _form.Name, _form.Sku, _form.ExtRef, _form.Slug,
                     _form.Description, _form.Status, _form.IsFeatured, brandId, catIds));
-                Navigation.NavigateTo($"/products/{id}");
+
+                // CreateProductCommand has no full-description field — persist it with a follow-up update.
+                if (!string.IsNullOrWhiteSpace(_form.DetailDescription))
+                    await Mediator.Send(new UpdateProductCommand(
+                        id, _form.Name, _form.Sku, _form.ExtRef, _form.Slug,
+                        _form.Description, _form.Status, _form.IsFeatured, brandId, _form.DetailDescription, catIds));
+
+                // The route is keyed by slug, not id. Force a load: the same component
+                // instance would otherwise be reused and never fetch the new product.
+                Navigation.NavigateTo($"/products/{Uri.EscapeDataString(_form.Slug)}", forceLoad: true);
             }
             else
             {
                 await Mediator.Send(new UpdateProductCommand(
-                    _detail.Id, _form.Name, _form.Sku, _form.ExtRef, _form.Slug,
+                    _detail!.Id, _form.Name, _form.Sku, _form.ExtRef, _form.Slug,
                     _form.Description, _form.Status, _form.IsFeatured, brandId, _form.DetailDescription, catIds));
                 _saved = true;
+
+                // Keep the address bar on the current slug so a reload still finds the product.
+                if (_form.Slug != Slug)
+                    Navigation.NavigateTo($"/products/{Uri.EscapeDataString(_form.Slug)}", replace: true);
             }
         }
         catch (Exception ex)
@@ -832,6 +828,8 @@ else
             _singleSkuPrice = s.Price;
             _singleSkuCompareAtPrice = s.CompareAtPrice;
             _singleSkuCostPrice = s.CostPrice;
+            _singleSkuStock = s.StockQuantity;
+            _singleSkuLowStock = s.LowStockThreshold;
         }
     }
 
@@ -846,7 +844,7 @@ else
             var sku = _skus[0];
             await Mediator.Send(new UpdateSkuCommand(sku.Id, sku.SKU, sku.ExtRef, sku.Name, sku.Gtin,
                 _singleSkuPrice, _singleSkuCompareAtPrice, _singleSkuCostPrice,
-                sku.Tax, sku.StockQuantity, sku.LowStockThreshold, sku.ImagePath));
+                sku.Tax, _singleSkuStock, _singleSkuLowStock, sku.ImagePath));
             await ReloadSkusAsync();
             _skuPriceSaved = true;
         }
@@ -931,12 +929,5 @@ else
         public bool IsFeatured { get; set; }
         public int BrandId { get; set; }
         public int PrimaryCategoryId { get; set; }
-        public decimal? Price { get; set; }
-        public decimal? CompareAtPrice { get; set; }
-        public decimal? CostPrice { get; set; }
-        public int? Stock { get; set; }
-        public int? LowStockThreshold { get; set; }
-        public bool TrackStock { get; set; }
-        public bool AllowBackorders { get; set; }
     }
 }

@@ -60,7 +60,9 @@ public class CreateSkuCommandHandler(IAppDbContext db) : IRequestHandler<CreateS
     }
 }
 
-public record UpdateSkuCommand(int Id, string SKU, string ExtRef, string Name, string Gtin, decimal Price, decimal? CompareAtPrice, decimal? CostPrice, decimal Tax, int StockQuantity, int LowStockThreshold, string? ImagePath) : IRequest;
+// OptionValues: null leaves the SKU's option values untouched; a list (even empty)
+// replaces them.
+public record UpdateSkuCommand(int Id, string SKU, string ExtRef, string Name, string Gtin, decimal Price, decimal? CompareAtPrice, decimal? CostPrice, decimal Tax, int StockQuantity, int LowStockThreshold, string? ImagePath, List<(int OptionId, int OptionValueId)>? OptionValues = null) : IRequest;
 
 public class UpdateSkuCommandValidator : AbstractValidator<UpdateSkuCommand>
 {
@@ -88,6 +90,23 @@ public class UpdateSkuCommandHandler(IAppDbContext db) : IRequestHandler<UpdateS
         sku.StockQuantity = request.StockQuantity;
         sku.LowStockThreshold = request.LowStockThreshold;
         if (request.ImagePath is not null) sku.ImagePath = request.ImagePath;
+
+        if (request.OptionValues is not null)
+        {
+            var existing = await db.SkuOptionValues.Where(v => v.ProductSkuId == sku.Id).ToListAsync(ct);
+            db.SkuOptionValues.RemoveRange(existing);
+            foreach (var (optId, valId) in request.OptionValues)
+            {
+                db.SkuOptionValues.Add(new SkuOptionValue
+                {
+                    ProductId = sku.ProductId,
+                    ProductSkuId = sku.Id,
+                    ProductOptionsId = optId,
+                    ProductOptionValueId = valId,
+                });
+            }
+        }
+
         await db.SaveChangesAsync(ct);
     }
 }

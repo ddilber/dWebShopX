@@ -4,6 +4,7 @@
 @using MediatR
 @using dWebShop.Application.Features.Brands.Queries
 @using dWebShop.Application.Features.Brands.Commands
+@using dWebShop.Admin.Components.Pages.Blog
 @inject IMediator Mediator
 
 <PageTitle>Brands — dWebShop Admin</PageTitle>
@@ -41,12 +42,16 @@ else if (_brands is not null)
                 <FluentButton Appearance="ButtonAppearance.Transparent" IconStart="@(new Icons.Regular.Size16.Dismiss())" OnClick="CloseDialog" />
             </div>
             <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <FluentMessageBar Intent="MessageBarIntent.Error">@_error</FluentMessageBar>
+                }
                 <FluentTextInput @bind-Value="_editModel.Name" Label="Name" Style="width: 100%" />
                 <FluentTextInput @bind-Value="_editModel.Slug" Label="Slug" Style="width: 100%" />
                 <FluentTextArea @bind-Value="_editModel.Description" Label="Description" Rows="3" Style="width: 100%" />
             </div>
             <div class="img-picker-footer">
-                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="Save">Save</FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Primary" Disabled="@_saving" OnClick="Save">@(_saving ? "Saving…" : "Save")</FluentButton>
                 <FluentButton OnClick="CloseDialog">Cancel</FluentButton>
             </div>
         </div>
@@ -57,6 +62,8 @@ else if (_brands is not null)
     private List<BrandDto>? _brands;
     private bool _loading = true;
     private bool _dialogOpen;
+    private bool _saving;
+    private string _error = "";
     private BrandEditModel _editModel = new();
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
@@ -69,11 +76,18 @@ else if (_brands is not null)
         _loading = false;
     }
 
-    private void OpenCreate() { _editModel = new(); _dialogOpen = true; }
+    private void OpenCreate() { _editModel = new(); _error = ""; _dialogOpen = true; }
 
-    private async Task OpenEdit(BrandDto brand)
+    private void OpenEdit(BrandDto brand)
     {
-        _editModel = new() { Id = brand.Id, Name = brand.Name, Slug = brand.Slug, Description = brand.Description };
+        // Logo and slider images aren't editable here, but the update command
+        // overwrites them, so carry the stored values through.
+        _editModel = new()
+        {
+            Id = brand.Id, Name = brand.Name, Slug = brand.Slug, Description = brand.Description,
+            LogoImage = brand.LogoImage, SliderImage = brand.SliderImage,
+        };
+        _error = "";
         _dialogOpen = true;
     }
 
@@ -81,13 +95,27 @@ else if (_brands is not null)
 
     private async Task Save()
     {
-        if (_editModel.Id == 0)
-            await Mediator.Send(new CreateBrandCommand(_editModel.Name, _editModel.Slug, _editModel.Description, "", ""));
-        else
-            await Mediator.Send(new UpdateBrandCommand(_editModel.Id, _editModel.Name, _editModel.Slug, _editModel.Description, "", ""));
+        _error = "";
+        if (string.IsNullOrWhiteSpace(_editModel.Name)) { _error = "Name is required."; return; }
+        if (string.IsNullOrWhiteSpace(_editModel.Slug)) _editModel.Slug = SlugHelper.Slugify(_editModel.Name);
 
-        _dialogOpen = false;
-        await LoadAsync();
+        _saving = true;
+        try
+        {
+            if (_editModel.Id == 0)
+                await Mediator.Send(new CreateBrandCommand(_editModel.Name, _editModel.Slug, _editModel.Description, "", ""));
+            else
+                await Mediator.Send(new UpdateBrandCommand(_editModel.Id, _editModel.Name, _editModel.Slug, _editModel.Description,
+                    _editModel.LogoImage, _editModel.SliderImage));
+
+            _dialogOpen = false;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        _saving = false;
     }
 
     private class BrandEditModel
@@ -96,5 +124,7 @@ else if (_brands is not null)
         public string Name { get; set; } = "";
         public string Slug { get; set; } = "";
         public string Description { get; set; } = "";
+        public string LogoImage { get; set; } = "";
+        public string SliderImage { get; set; } = "";
     }
 }

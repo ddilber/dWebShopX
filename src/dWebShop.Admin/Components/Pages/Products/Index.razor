@@ -182,9 +182,13 @@
                         </div>
                     </div>
             </TemplateColumn>
-            <PropertyColumn Property="@(c => c.BrandName ?? "—")" Sortable="true" Filtered="!string.IsNullOrWhiteSpace(nameFilter)" Tooltip="true" Title="Brand">
-            </PropertyColumn>
-            <PropertyColumn Property="@(c => c.MinPrice)" Sortable="true" Align="DataGridCellAlignment.Start" Tooltip="true" TooltipText="@(c => "Price: " + c.MinPrice)" Title="Price"/>
+            @* SortBy only names the property; the server does the actual ordering. *@
+            <TemplateColumn Title="Brand" Sortable="true" SortBy="@_sortByBrand">
+                @(context.BrandName ?? "—")
+            </TemplateColumn>
+            <TemplateColumn Title="Price" Sortable="true" SortBy="@_sortByPrice" Align="DataGridCellAlignment.Start">
+                @(context.MinPrice.HasValue ? AdminFormat.Money(context.MinPrice.Value) : "—")
+            </TemplateColumn>
             <TemplateColumn Title="Status" Align="DataGridCellAlignment.Center">
                 @switch (context.Status)
                 {
@@ -199,10 +203,6 @@
                         break;
                 }
             </TemplateColumn>
-@*             <TemplateColumn Align="DataGridCellAlignment.End">
-				<button class="ds-btn ds-btn-subtle" @onclick="@(() => Navigation.NavigateTo($"/products/{context.Slug}"))">Edit</button>
-            </TemplateColumn>
- *@
     </FluentDataGrid>
 
     <div class="list-foot">
@@ -216,87 +216,6 @@
             </PaginationTextTemplate>
         </FluentPaginator>
     </div>
-
-        
-
-@*         <table class="ds-table">
-            <thead>
-                <tr>
-                    <th class="ds-th" style="width: 42%">Product</th>
-                    <th class="ds-th">Brand</th>
-                    <th class="ds-th">Price</th>
-                    <th class="ds-th">Status</th>
-                    <th class="ds-th" style="width: 80px; text-align: right"></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var p in _products!)
-                {
-                    <tr class="ds-tr">
-                        <td class="ds-td">
-                            <div class="tbl-name-cell">
-                                <div class="tbl-thumb">
-                                    @if (p.PrimaryImage is not null)
-                                    {
-                                        <img src="@p.PrimaryImage" alt="" />
-                                    }
-                                    else
-                                    {
-                                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                                            <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm0 1.5h12a.5.5 0 01.5.5v6.586l-2.793-2.793a1 1 0 00-1.414 0L9.5 11.586 8.207 10.293a1 1 0 00-1.414 0L3.5 13.793V5a.5.5 0 01.5-.5zm3 3a1 1 0 110 2 1 1 0 010-2z"/>
-                                        </svg>
-                                    }
-                                </div>
-                                <div>
-                                    <div class="tbl-name">@p.Name</div>
-                                    <div class="tbl-sku">@p.SKU</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="ds-td is-muted">@(p.BrandName ?? "—")</td>
-                        <td class="ds-td">@(p.MinPrice.HasValue ? $"${p.MinPrice:N2}" : "—")</td>
-                        <td class="ds-td">
-                            @switch (p.Status)
-                            {
-                                case ProductStatus.Active:
-                                    <span class="ds-badge ds-badge-success">Active</span>
-                                    break;
-                                case ProductStatus.Archived:
-                                    <span class="ds-badge ds-badge-neutral">Archived</span>
-                                    break;
-                                default:
-                                    <span class="ds-badge ds-badge-warning">Draft</span>
-                                    break;
-                            }
-                        </td>
-                        <td class="ds-td" style="text-align: right">
-                            <button class="ds-btn ds-btn-subtle" @onclick="@(() => Navigation.NavigateTo($"/products/{p.Id}"))">Edit</button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-
-        <div class="list-foot">
-            <span>Showing @_products!.Count of @_totalCount products</span>
-            <div class="list-pages">
-                <button class="list-page-btn" disabled="@(_page == 1)" @onclick="PrevPage">
-                    <svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
-                        <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/>
-                    </svg>
-                </button>
-                @for (int i = 1; i <= _totalPages; i++)
-                {
-                    var pg = i;
-                    <button class="list-page-btn @(_page == pg ? "is-active" : "")" @onclick="@(() => GoToPage(pg))">@pg</button>
-                }
-                <button class="list-page-btn" disabled="@(_page >= _totalPages)" @onclick="NextPage">
-                    <svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
-                        <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/>
-                    </svg>
-                </button>
-            </div>
-        </div> *@
 </div>
 
 @code {
@@ -305,18 +224,14 @@
     private string _tab = "all";
     private string _search = "";
     private ProductStatus? _statusFilter = null;
-
-    private int _page = 1;
-    private int _totalPages = 1;
-    bool _clearItems = false;
+    private ProductStockFilter _stockFilter = ProductStockFilter.Any;
 
     FluentDataGrid<ProductListItemDto> grid = default!;
-    string nameFilter = string.Empty;
 
     PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
 
-    Func<ProductListItemDto, string?> rowClass = x => x.Status == ProductStatus.Draft ? null : null;
-    Func<ProductListItemDto, string?> rowStyle = x => x.Status == ProductStatus.Active ? null : null;
+    private readonly GridSort<ProductListItemDto> _sortByBrand = GridSort<ProductListItemDto>.ByAscending(p => p.BrandName);
+    private readonly GridSort<ProductListItemDto> _sortByPrice = GridSort<ProductListItemDto>.ByAscending(p => p.MinPrice);
 
     // Filter state
     private List<BrandDto> _brands = [];
@@ -331,9 +246,13 @@
         _categories = await Mediator.Send(new GetCategoriesQuery());
     }
 
+    // Filters change the result set, so jump back to the first page; changing
+    // the page index refreshes the grid by itself.
     private async Task LoadAsync()
     {
-        if (grid is not null)
+        if (pagination.CurrentPageIndex != 0)
+            await pagination.SetCurrentPageIndexAsync(0);
+        else if (grid is not null)
             await grid.RefreshDataAsync();
     }
 
@@ -355,7 +274,8 @@
             Sort: sort,
             BrandIds: _selectedBrandIds.Count > 0 ? [.. _selectedBrandIds] : null,
             CategoryIds: _selectedCategoryIds.Count > 0 ? [.. _selectedCategoryIds] : null,
-            IncludePrice: true));
+            IncludePrice: true,
+            Stock: _stockFilter));
 
         await pagination.SetTotalItemCountAsync(result.TotalCount);
 
@@ -367,25 +287,24 @@
 
     private void HandleRowClick(FluentDataGridRow<ProductListItemDto> row)
     {
-        Console.WriteLine($"[Custom comparer] Row focused: {row.Item?.Name}");
-        Navigation.NavigateTo($"/products/{row.Item.Slug}");
+        if (row.Item is not null)
+            Navigation.NavigateTo($"/products/{row.Item.Slug}");
     }
 
-    private async Task SetTab(string tab) 
-    { 
-        _tab = tab; _page = 1;
-        if (_tab.Equals("active"))
-            _statusFilter = ProductStatus.Active;
-        else
-            _statusFilter = null;
-
-		await LoadAsync();
+    private async Task SetTab(string tab)
+    {
+        _tab = tab;
+        _statusFilter = tab == "active" ? ProductStatus.Active : null;
+        _stockFilter = tab switch
+        {
+            "low" => ProductStockFilter.Low,
+            "out" => ProductStockFilter.Out,
+            _ => ProductStockFilter.Any,
+        };
+        await LoadAsync();
     }
 
-    private async Task OnSearch() { _page = 1; await LoadAsync(); }
-    private async Task PrevPage() { if (_page > 1) { _page--; await LoadAsync(); } }
-    private async Task NextPage() { if (_page < _totalPages) { _page++; await LoadAsync(); } }
-    private async Task GoToPage(int pg) { _page = pg; await LoadAsync(); }
+    private async Task OnSearch() => await LoadAsync();
 
     // Filter helpers
     private void ToggleFilter(string name) =>
