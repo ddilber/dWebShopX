@@ -10,7 +10,7 @@
     {
       "name": "web-net10",
       "runtimeExecutable": "dotnet",
-      "runtimeArgs": ["run", "--project", "src/dWebShop.Web/dWebShop.Web.csproj", "--urls", "http://localhost:5010", "-p:RollForward=Major"],
+      "runtimeArgs": ["run", "--project", "src/dWebShop.Web/dWebShop.Web.csproj", "--urls", "http://localhost:5010", "-p:RollForward=Major", "--", "--SharedUploadsPath=C:/PROJECTS/Blazor/dWebShopX/uploads"],
       "port": 5010
     },
     {

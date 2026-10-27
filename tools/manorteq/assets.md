@@ -6,7 +6,7 @@ Save each one under `SharedUploadsPath` using the file name exactly as listed (d
 - Images go in `product_images/manorteq/`.
 - PDFs go in `product_docs/manorteq/`.
 
-manorteq.com's WAF blocks scripted downloads with HTTP 466, so these files have to be saved from a browser. A better option is to ask Manorteq for the media package directly, since we are their distributor. The source text was scraped from manorteq.com on 27 Oct 2026.
+manorteq.com's WAF blocks scripted downloads with HTTP 466. On 27 Oct 2026 all files below were saved through a real browser into the local `uploads/` folder (55 images, 25 PDFs, logo). They are not in git. On deploy, copy `uploads/product_images/manorteq/`, `uploads/product_docs/manorteq/` and `uploads/brand_images/manorteq-logo.png` to the server's SharedUploadsPath. Higher-resolution originals can be requested from Manorteq. The source text was scraped from manorteq.com on 27 Oct 2026.
 
 Images base URL: `https://manorteq.com/wp-content/uploads/`
 
