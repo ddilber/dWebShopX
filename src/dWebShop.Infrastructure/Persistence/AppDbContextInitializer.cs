@@ -1,6 +1,7 @@
 using dWebShop.Domain.Entities.Inspirations;
 using dWebShop.Domain.Entities.Partners;
 using dWebShop.Domain.Entities.Products;
+using dWebShop.Domain.Entities.Social;
 using dWebShop.Domain.Entities.Users;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -43,8 +44,10 @@ public class AppDbContextInitializer
         await SeedAdminUserAsync();
         await SeedBrandsAsync();
         await SeedCatalogAsync();
+        await SeedBrandCatalogAsync(ManorteqSeedData.BrandSlug, ManorteqSeedData.Categories, ManorteqSeedData.Products);
         await SeedDemoPartnerAsync();
         await SeedInspirationsAsync();
+        await SeedSocialAsync();
     }
 
     private async Task SeedRolesAsync()
@@ -66,8 +69,25 @@ public class AppDbContextInitializer
         var adminPassword = _configuration["Seed:AdminPassword"] ?? "Admin@12345!";
         var adminUserName = _configuration["Seed:AdminUserName"] ?? "admin";
 
-        if (await _userManager.FindByEmailAsync(adminEmail) is not null)
+        var existing = await _userManager.FindByEmailAsync(adminEmail);
+        if (existing is not null)
+        {
+            // Repair rather than skip: an account created before the Admin role
+            // existed — or by any path that missed the assignment — signs in
+            // fine and then fails every [Authorize(Roles = "Admin")] page with
+            // an access-denied redirect. Returning early here made that state
+            // unrecoverable.
+            if (!await _userManager.IsInRoleAsync(existing, "Admin"))
+            {
+                var repair = await _userManager.AddToRoleAsync(existing, "Admin");
+                if (repair.Succeeded)
+                    _logger.LogWarning("Admin user {Email} was missing the Admin role — added.", adminEmail);
+                else
+                    _logger.LogError("Could not add {Email} to the Admin role: {Errors}",
+                        adminEmail, string.Join(", ", repair.Errors.Select(e => e.Description)));
+            }
             return;
+        }
 
         var admin = new ApplicationUser
         {
@@ -199,13 +219,70 @@ public class AppDbContextInitializer
         }
 
         // 2) Tags. Deduplicate across all products and create as needed.
-        var allTagNames = CatalogSeedData.Products
-            .SelectMany(p => p.Tags)
-            .Distinct()
-            .ToList();
+        var tagIdByName = await EnsureTagsAsync(CatalogSeedData.Products);
 
+        // 3) Products + their full graph.
+        foreach (var seed in CatalogSeedData.Products)
+        {
+            if (!brandIdBySlug.TryGetValue(seed.BrandSlug, out var brandId)) continue;
+            categoryIdBySlug.TryGetValue((seed.BrandSlug, seed.CategorySlug), out var categoryId);
+            await AddSeedProductAsync(seed, brandId, categoryId, tagIdByName);
+        }
+    }
+
+    // Per-brand catalog seed for brands added after the initial catalog went
+    // live (SeedCatalogAsync is skipped once any product exists). Runs only
+    // while the brand has no products, so Admin edits are never overwritten.
+    // Categories are inserted in array order; a ParentSlug must refer to a
+    // category listed earlier in the same array.
+    private async Task SeedBrandCatalogAsync(
+        string brandSlug, CatalogSeedData.CategorySeed[] categories, CatalogSeedData.ProductSeed[] products)
+    {
+        var brand = await _context.Brands.FirstOrDefaultAsync(b => b.Slug == brandSlug);
+        if (brand is null) return;
+        if (await _context.Products.AnyAsync(p => p.BrandId == brand.Id)) return;
+
+        var categoryIdBySlug = new Dictionary<string, int>();
+        foreach (var cat in categories)
+        {
+            var existing = await _context.Categories
+                .FirstOrDefaultAsync(c => c.BrandId == brand.Id && c.Slug == cat.Slug);
+            if (existing is not null)
+            {
+                categoryIdBySlug[cat.Slug] = existing.Id;
+                continue;
+            }
+
+            var entity = new Category
+            {
+                Name = cat.Name,
+                Slug = cat.Slug,
+                Description = cat.Description,
+                BrandId = brand.Id,
+                CategoryId = cat.ParentSlug is not null && categoryIdBySlug.TryGetValue(cat.ParentSlug, out var parentId)
+                    ? parentId
+                    : null,
+            };
+            _context.Categories.Add(entity);
+            await _context.SaveChangesAsync();
+            categoryIdBySlug[cat.Slug] = entity.Id;
+        }
+
+        var tagIdByName = await EnsureTagsAsync(products);
+
+        foreach (var seed in products)
+        {
+            categoryIdBySlug.TryGetValue(seed.CategorySlug, out var categoryId);
+            await AddSeedProductAsync(seed, brand.Id, categoryId, tagIdByName);
+        }
+
+        _logger.LogInformation("Seeded {Count} products for brand {Brand}.", products.Length, brandSlug);
+    }
+
+    private async Task<Dictionary<string, int>> EnsureTagsAsync(IEnumerable<CatalogSeedData.ProductSeed> products)
+    {
         var tagIdByName = new Dictionary<string, int>();
-        foreach (var name in allTagNames)
+        foreach (var name in products.SelectMany(p => p.Tags).Distinct())
         {
             var existing = await _context.Tags.FirstOrDefaultAsync(t => t.Name == name);
             if (existing is not null)
@@ -218,104 +295,105 @@ public class AppDbContextInitializer
             await _context.SaveChangesAsync();
             tagIdByName[name] = tag.Id;
         }
+        return tagIdByName;
+    }
 
-        // 3) Products + their full graph. Build entities in-memory then save
-        // once per product so EF can resolve internal FKs in the same SCSU.
-        foreach (var seed in CatalogSeedData.Products)
+    // Builds one product with its full graph in-memory, then saves once so EF
+    // can resolve internal FKs in the same SaveChanges.
+    private async Task AddSeedProductAsync(
+        CatalogSeedData.ProductSeed seed, int brandId, int categoryId, Dictionary<string, int> tagIdByName)
+    {
+        var product = new Product
         {
-            if (!brandIdBySlug.TryGetValue(seed.BrandSlug, out var brandId)) continue;
-            categoryIdBySlug.TryGetValue((seed.BrandSlug, seed.CategorySlug), out var categoryId);
-
-            var product = new Product
+            Name = seed.Name,
+            Slug = seed.Slug,
+            SKU = seed.Slug.ToUpperInvariant(),
+            ExtRef = string.Empty,
+            Description = seed.Short,
+            Status = ProductStatus.Active,
+            IsFeatured = false,
+            BrandId = brandId,
+            ProductDetails = new ProductDetails
             {
-                Name = seed.Name,
-                Slug = seed.Slug,
-                SKU = seed.Slug.ToUpperInvariant(),
-                ExtRef = string.Empty,
-                Description = seed.Short,
-                Status = ProductStatus.Active,
-                IsFeatured = false,
-                BrandId = brandId,
-                ProductDetails = new ProductDetails
-                {
-                    DetailDescription = seed.Desc,
-                    Information = seed.Info
-                        .Select(i => new ProductInfo { Key = i.Key, Data = i.Value })
-                        .ToList(),
-                    Documents = seed.Docs
-                        // Path is left blank — the legacy site never linked to
-                        // real PDFs; Admin can attach files later.
-                        .Select(d => new ProductDocument { Name = d.Name, Path = string.Empty, Description = d.Size })
-                        .ToList(),
-                    Images = [],
-                },
-                Categories = categoryId != 0
-                    ? [_context.Categories.Local.First(c => c.Id == categoryId) ??
-                       _context.Categories.First(c => c.Id == categoryId)]
-                    : [],
-                Tags = seed.Tags
-                    .Where(t => tagIdByName.ContainsKey(t))
-                    .Select(t => _context.Tags.Local.FirstOrDefault(x => x.Id == tagIdByName[t]) ??
-                                 _context.Tags.First(x => x.Id == tagIdByName[t]))
+                DetailDescription = seed.Desc,
+                Information = seed.Info
+                    .Select(i => new ProductInfo { Key = i.Key, Data = i.Value })
                     .ToList(),
-            };
+                Documents = seed.Docs
+                    // Legacy seeds leave Path blank (the old site never linked
+                    // real PDFs); Admin can attach files later.
+                    .Select(d => new ProductDocument { Name = d.Name, Path = d.Path, Description = d.Size })
+                    .ToList(),
+                Images = (seed.Images ?? [])
+                    .Select((path, i) => new ProductImage { Path = path, Description = seed.Name, SortOrder = i })
+                    .ToList(),
+            },
+            Categories = categoryId != 0
+                ? [_context.Categories.Local.First(c => c.Id == categoryId) ??
+                   _context.Categories.First(c => c.Id == categoryId)]
+                : [],
+            Tags = seed.Tags
+                .Where(t => tagIdByName.ContainsKey(t))
+                .Select(t => _context.Tags.Local.FirstOrDefault(x => x.Id == tagIdByName[t]) ??
+                             _context.Tags.First(x => x.Id == tagIdByName[t]))
+                .ToList(),
+        };
 
-            // Build option entities and capture their value entities so we
-            // can wire them onto SKUs by position below.
-            var optionEntities = new List<ProductOption>();
-            var valueEntitiesByOption = new List<List<ProductOptionValue>>();
-            foreach (var opt in seed.Options)
+        // Build option entities and capture their value entities so we
+        // can wire them onto SKUs by position below.
+        var optionEntities = new List<ProductOption>();
+        var valueEntitiesByOption = new List<List<ProductOptionValue>>();
+        foreach (var opt in seed.Options)
+        {
+            var valueEntities = opt.Values
+                .Select(v => new ProductOptionValue { Name = v })
+                .ToList();
+            optionEntities.Add(new ProductOption
             {
-                var valueEntities = opt.Values
-                    .Select(v => new ProductOptionValue { Name = v })
-                    .ToList();
-                optionEntities.Add(new ProductOption
-                {
-                    Name = opt.Name,
-                    IsNamePart = false,
-                    ProductOptionValues = valueEntities,
-                });
-                valueEntitiesByOption.Add(valueEntities);
-            }
-            product.ProductOptions = optionEntities;
-
-            // SKUs. Each SKU's Opts[] aligns positionally with seed.Options,
-            // so look up the corresponding ProductOptionValue by index.
-            var skuEntities = new List<ProductSku>();
-            foreach (var sku in seed.Skus)
-            {
-                var skuOptionValues = new List<SkuOptionValue>();
-                for (var i = 0; i < sku.Opts.Length && i < optionEntities.Count; i++)
-                {
-                    var pov = valueEntitiesByOption[i]
-                        .FirstOrDefault(v => v.Name == sku.Opts[i]);
-                    if (pov is null) continue;
-                    skuOptionValues.Add(new SkuOptionValue
-                    {
-                        ProductOption = optionEntities[i],
-                        ProductOptionValue = pov,
-                    });
-                }
-
-                skuEntities.Add(new ProductSku
-                {
-                    SKU = string.Empty,
-                    ExtRef = string.Empty,
-                    Name = string.Join(" · ", sku.Opts),
-                    Gtin = string.Empty,
-                    Price = sku.Price,
-                    Tax = 0m,
-                    StockQuantity = CatalogSeedData.StockFromBucket(sku.Stock),
-                    LowStockThreshold = 5,
-                    Uom = sku.Uom,
-                    SkuOptionValues = skuOptionValues,
-                });
-            }
-            product.ProductSkus = skuEntities;
-
-            _context.Products.Add(product);
-            await _context.SaveChangesAsync();
+                Name = opt.Name,
+                IsNamePart = false,
+                ProductOptionValues = valueEntities,
+            });
+            valueEntitiesByOption.Add(valueEntities);
         }
+        product.ProductOptions = optionEntities;
+
+        // SKUs. Each SKU's Opts[] aligns positionally with seed.Options,
+        // so look up the corresponding ProductOptionValue by index.
+        var skuEntities = new List<ProductSku>();
+        foreach (var sku in seed.Skus)
+        {
+            var skuOptionValues = new List<SkuOptionValue>();
+            for (var i = 0; i < sku.Opts.Length && i < optionEntities.Count; i++)
+            {
+                var pov = valueEntitiesByOption[i]
+                    .FirstOrDefault(v => v.Name == sku.Opts[i]);
+                if (pov is null) continue;
+                skuOptionValues.Add(new SkuOptionValue
+                {
+                    ProductOption = optionEntities[i],
+                    ProductOptionValue = pov,
+                });
+            }
+
+            skuEntities.Add(new ProductSku
+            {
+                SKU = string.Empty,
+                ExtRef = string.Empty,
+                Name = string.Join(" · ", sku.Opts),
+                Gtin = string.Empty,
+                Price = sku.Price,
+                Tax = 0m,
+                StockQuantity = CatalogSeedData.StockFromBucket(sku.Stock),
+                LowStockThreshold = 5,
+                Uom = sku.Uom,
+                SkuOptionValues = skuOptionValues,
+            });
+        }
+        product.ProductSkus = skuEntities;
+
+        _context.Products.Add(product);
+        await _context.SaveChangesAsync();
     }
 
     // Compact slugifier for tag names — lowercases, strips diacritics, replaces
@@ -500,6 +578,68 @@ public class AppDbContextInitializer
         };
 
         _context.Inspirations.AddRange(articles);
+        await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Seeds the homepage "Društvene mreže" block with what used to be
+    /// hardcoded in Home.razor, so switching that page over to the database
+    /// doesn't blank the section. Both lists are then managed from Admin.
+    /// </summary>
+    private async Task SeedSocialAsync()
+    {
+        if (!await _context.SocialProfiles.AnyAsync())
+        {
+            _context.SocialProfiles.AddRange(
+                new SocialProfile
+                {
+                    Key = "facebook", Name = "Facebook", Handle = "/sto.tomislavgrad",
+                    Url = "https://www.facebook.com/sto.tomislavgrad",
+                    SortOrder = 0, Published = true,
+                },
+                new SocialProfile
+                {
+                    Key = "instagram", Name = "Instagram", Handle = "@asgifiks",
+                    Url = "https://www.instagram.com/asgifiks/",
+                    SortOrder = 1, Published = true,
+                },
+                new SocialProfile
+                {
+                    Key = "tiktok", Name = "TikTok", Handle = "@asgifiks",
+                    Url = "https://www.tiktok.com/@asgifiks",
+                    SortOrder = 2, Published = true,
+                });
+        }
+
+        if (!await _context.SocialVideos.AnyAsync())
+        {
+            // Real posts. Captions and durations are neutral stand-ins — the
+            // client should replace them in Admin with something that says what
+            // each clip actually shows.
+            _context.SocialVideos.AddRange(
+                new SocialVideo
+                {
+                    Platform = "TikTok", Caption = "Objava s TikToka",
+                    EmbedUrl = "https://www.tiktok.com/embed/v2/7527579483545603384",
+                    FallbackUrl = "https://www.tiktok.com/@asgifiks/video/7527579483545603384",
+                    SortOrder = 0, Published = true,
+                },
+                new SocialVideo
+                {
+                    Platform = "Instagram", Caption = "Objava s Instagrama",
+                    EmbedUrl = "https://www.instagram.com/reel/DZZxzepyCoz/embed",
+                    FallbackUrl = "https://www.instagram.com/reel/DZZxzepyCoz/",
+                    SortOrder = 1, Published = true,
+                },
+                new SocialVideo
+                {
+                    Platform = "TikTok", Caption = "Objava s TikToka",
+                    EmbedUrl = "https://www.tiktok.com/embed/v2/7508709226059959608",
+                    FallbackUrl = "https://www.tiktok.com/@asgifiks/video/7508709226059959608",
+                    SortOrder = 2, Published = true,
+                });
+        }
+
         await _context.SaveChangesAsync();
     }
 }

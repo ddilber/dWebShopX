@@ -5,6 +5,7 @@ using dWebShop.Domain.Entities.Partners;
 using dWebShop.Domain.Entities.Pricing;
 using dWebShop.Domain.Entities.Products;
 using dWebShop.Domain.Entities.ShoppingCart;
+using dWebShop.Domain.Entities.Social;
 using Microsoft.EntityFrameworkCore;
 
 namespace dWebShop.Application.Common.Interfaces;
@@ -18,6 +19,9 @@ public interface IAppDbContext : IAsyncDisposable
     DbSet<PostTag> PostTags { get; }
     DbSet<PostMeta> PostMetas { get; }
     DbSet<PostComment> PostComments { get; }
+
+    DbSet<SocialProfile> SocialProfiles { get; }
+    DbSet<SocialVideo> SocialVideos { get; }
 
     DbSet<Brand> Brands { get; }
     DbSet<Category> Categories { get; }

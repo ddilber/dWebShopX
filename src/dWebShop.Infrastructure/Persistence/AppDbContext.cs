@@ -5,6 +5,7 @@ using dWebShop.Domain.Entities.Partners;
 using dWebShop.Domain.Entities.Pricing;
 using dWebShop.Domain.Entities.Products;
 using dWebShop.Domain.Entities.ShoppingCart;
+using dWebShop.Domain.Entities.Social;
 using dWebShop.Domain.Entities.Users;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -64,6 +65,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int>
     public DbSet<PostTag> PostTags => Set<PostTag>();
     public DbSet<PostMeta> PostMetas => Set<PostMeta>();
     public DbSet<PostComment> PostComments => Set<PostComment>();
+
+    // Social (homepage "Društvene mreže" block)
+    public DbSet<SocialProfile> SocialProfiles => Set<SocialProfile>();
+    public DbSet<SocialVideo> SocialVideos => Set<SocialVideo>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -486,6 +491,31 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int>
                 .WithMany()
                 .HasForeignKey(x => x.BrandId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Social
+        builder.Entity<SocialProfile>(e =>
+        {
+            e.ToTable("SocialProfiles");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Key).HasMaxLength(50).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Handle).HasMaxLength(200);
+            e.Property(x => x.Url).HasMaxLength(500).IsRequired();
+            e.HasIndex(x => x.Key).IsUnique();
+        });
+
+        builder.Entity<SocialVideo>(e =>
+        {
+            e.ToTable("SocialVideos");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Platform).HasMaxLength(50).IsRequired();
+            e.Property(x => x.Caption).HasMaxLength(300);
+            e.Property(x => x.Duration).HasMaxLength(20);
+            e.Property(x => x.PosterImage).HasMaxLength(500);
+            e.Property(x => x.EmbedUrl).HasMaxLength(500);
+            e.Property(x => x.FallbackUrl).HasMaxLength(500);
+            e.HasIndex(x => x.SortOrder);
         });
     }
 }

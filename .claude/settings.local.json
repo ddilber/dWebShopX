@@ -59,7 +59,15 @@
       "Bash(ASPNETCORE_ENVIRONMENT=Development dotnet run --no-build -c Debug --project dWebShop.Web.csproj)",
       "PowerShell(try { $x = [xml]\\(Get-Content -Raw -Encoding UTF8 'C:/tmp/sm2.xml' -ErrorAction Stop\\); Write-Output \"VALID XML — $\\($x.urlset.url.Count\\) <url> entries\" } catch { try { $x=[xml]\\(Get-Content -Raw '/tmp/sm2.xml'\\); Write-Output \"VALID XML — $\\($x.urlset.url.Count\\) url entries\" } catch { Write-Output \"PARSE ERROR: $_\" } })",
       "PowerShell(dotnet build src/dWebShop.Admin/dWebShop.Admin.csproj -c Debug --nologo -v quiet 2>&1)",
-      "PowerShell(dotnet restore src/dWebShop.Admin/dWebShop.Admin.csproj --nologo 2>&1)"
+      "PowerShell(dotnet restore src/dWebShop.Admin/dWebShop.Admin.csproj --nologo 2>&1)",
+      "Bash(wsl -l -v)",
+      "Bash(wsl -d Debian13 hostname -I)",
+      "PowerShell($r = Test-NetConnection -ComputerName 172.24.30.229 -Port 3306 -WarningAction SilentlyContinue; \"TcpTestSucceeded: $\\($r.TcpTestSucceeded\\)\")",
+      "Bash(timeout 300 dotnet build src/dWebShop.Web/dWebShop.Web.csproj -v q --nologo)",
+      "Bash(timeout 300 dotnet build /f/PROJECTS/Blazor/dWebShopX/src/dWebShop.Web/dWebShop.Web.csproj -v q --nologo)",
+      "Skill(artifact-design)",
+      "Skill(artifact-design:*)",
+      "mcp__visualize__read_me"
     ]
   }
 }

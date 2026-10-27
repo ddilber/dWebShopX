@@ -7,7 +7,7 @@
     var canonical = $"https://asgifiks.ba/brands/{_brand.Key}";
     <HeadContent>
         <link rel="canonical" href="@canonical" />
-        <meta name="description" content="@($"{_brand.Name} ({_brand.Origin}, od {_brand.Since}) — {_brand.Tagline}. {_brand.Desc}")" />
+        <meta name="description" content="@($"{_brand.Name} ({_brand.Origin}{(HasSince ? $", od {_brand.Since}" : "")}) — {_brand.Tagline}. {_brand.Desc}")" />
         <meta property="og:title" content="@($"{_brand.Name} — {_brand.Tagline}")" />
         <meta property="og:description" content="@_brand.Desc" />
         <meta property="og:url" content="@canonical" />
@@ -19,7 +19,7 @@
             ["sameAs"] = _brand.Site,
             ["description"] = _brand.Desc,
             ["countryOfOrigin"] = _brand.Origin,
-            ["foundingDate"] = _brand.Since
+            ["foundingDate"] = HasSince ? _brand.Since : null
         })
         @Seo.JsonLd(new JsonObject {
             ["@type"] = "BreadcrumbList",
@@ -194,7 +194,7 @@ else
                             Imate <em style="font-style:normal; color:var(--asg-slate);">projekt</em>?
                         </h2>
                         <p style="color:rgba(244,241,234,.7); font-size:17px; margin:16px 0 0; max-width:48ch;">
-                            Pošaljite nam troškovnik za Sto sustave ili DWG detalje za Xypex hidroizolaciju. Pripremit ćemo ponudu, potrebnu tehničku dokumentaciju i, kada je potrebno, zatražiti podršku proizvođača.
+                            Pošaljite nam troškovnik za Sto sustave ili DWG detalje za Xypex hidroizolaciju i Manorteq brtvljenje spojeva. Pripremit ćemo ponudu, potrebnu tehničku dokumentaciju i, kada je potrebno, zatražiti podršku proizvođača.
                         </p>
                 </div>
                 <div style="display:flex; flex-direction:column; gap:12px;">
@@ -263,6 +263,9 @@ else
 
     private BrandData? _brand;
 
+    // "—" marks a founding year we don't know yet; keep it out of meta/JSON-LD.
+    private bool HasSince => _brand is not null && _brand.Since != "—";
+
     private record Stat(string N, string L);
     private record Why(string T, string D);
     private record BrandData(string Key, string Name, string Origin, string Since, string Tagline, string Desc,
@@ -291,7 +294,7 @@ else
             [new("55+","godina razvoja"), new("90+","zemalja primjene"), new("1B+","m³ obrađenog betona"), new("∞","životni vijek")],
             [new("Trajna zaštita","Kristali rastu unutar betona i postaju sastavni dio strukture — ne ljušte se i ne troše."),
              new("Samosanacija","U prisustvu vlage zatvara pukotine do 0.4 mm i nakon godina od ugradnje."),
-             new("Pitka voda","Sertifikovan za kontakt sa pitkom vodom (NSF/ANSI 61).")],
+             new("Pitka voda","Certificiran za kontakt sa pitkom vodom (NSF/ANSI 61).")],
             ["Admix dodatak za beton", "Concentrate / premazi", "Patch 'n Plug — sanacija", "Megamix hidroizolacijski mort", "Dichtungsslamm"]),
 
         new("cortec", "CORTEC", "SAD", "1977", "Zaštita od korozije — VpCI tehnologija",
@@ -302,6 +305,16 @@ else
              new("Pasivna zaštita","VpCI molekuli isparavaju i formiraju zaštitni film — nije potrebno premazivati svaki ćošak."),
              new("Industrijska primjena","Cjevovodi, armirani beton, transformatori, oprema u skladištenju i transportu.")],
             ["VpCI folije i papir", "VpCI inhibitori", "Antikorozioni premazi", "Aditivi za beton (MCI)", "Industrijska sredstva za čišćenje"]),
+
+        // TODO: Since — manorteq.com does not state a founding year; confirm with the client.
+        new("manorteq", "MANORTEQ", "Velika Britanija", "—", "Brtvljenje spojeva i mortovi uz Xypex",
+            "Britanski proizvođač brtvenih traka, hidroizolacijskih mortova i pribora razvijenih za rad uz Xypex sustav — od radnih spojeva i distancera oplate do sanacije betona i kapilarne vlage.",
+            "https://manorteq.com/",
+            [new("50+","godina iskustva tima"), new("25","proizvoda u ponudi"), new("6 bar","vodonepropusnost FormPlug/FormRing"), new("Xypex","tehnologija u mortovima")],
+            [new("Dopuna Xypex sustava","Kristalna hidroizolacija štiti masu betona, a Manorteq brtvi radne spojeve, prodore i distancere — mjesta gdje beton puca ili se skuplja."),
+             new("Provjereni materijali","Bubreće trake od bentonita i sintetike, krute trake s bitumenom ili bentonitom te mortovi ispitani prema EN 1504-3 i EN 12390-8."),
+             new("Cjelovit sustav","Od brtvene trake i ljepila do zalivnih masa i sredstva za njegu — sve za vodonepropusnu konstrukciju iz jednog izvora.")],
+            ["Bubreće brtvene trake HydroBar", "Krute brtvene trake WaterBar Rigid", "FormPlug i FormRing za distancere", "AquaRend i NonShrink mortovi", "Freezteq — sanacija kapilarne vlage"]),
     ];
 
     protected override void OnParametersSet()

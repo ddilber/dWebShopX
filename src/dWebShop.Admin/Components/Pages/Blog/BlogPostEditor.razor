@@ -20,7 +20,7 @@
                            @oninput="OnSlugInput" placeholder="post-url-slug" />
                     <div class="pl-hint">
                         Lowercase letters, numbers and hyphens.
-                        @if (!string.IsNullOrWhiteSpace(Model.Slug)) { <span>URL: /blog/@Model.Slug</span> }
+                        @if (!string.IsNullOrWhiteSpace(Model.Slug)) { <span>URL: /aktualnosti/@Model.Slug</span> }
                     </div>
                 </div>
                 <div class="pl-field">
@@ -122,6 +122,10 @@
             {
                 <div class="pl-side-empty" style="margin-bottom: 10px;">No tags defined yet.</div>
             }
+
+            <div class="pl-hint" style="margin-bottom: 10px;">
+                Tag a post <b>Aktualnosti</b> to list it on the public /aktualnosti page.
+            </div>
 
             <div class="pl-add-row">
                 <input class="co-input" placeholder="New tag…" value="@_newTag"

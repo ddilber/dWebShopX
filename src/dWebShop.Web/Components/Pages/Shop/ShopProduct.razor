@@ -26,12 +26,14 @@
         <meta property="og:type" content="product" />
         @Seo.OgImageTags(_ogImageRel, _product.Name)
         @{
+            // Prices are quoted on request, so no figure is published here
+            // either — a price in the structured data would surface in search
+            // results even though the page itself never shows one.
             var offers = _product.Skus.Count == 1
                 ? (JsonNode)new JsonObject {
                     ["@type"] = "Offer",
                     ["url"] = _canonical,
                     ["priceCurrency"] = "BAM",
-                    ["price"] = _product.Skus[0].Price,
                     ["availability"] = _product.Skus[0].StockBucket == "in" ? "https://schema.org/InStock" : "https://schema.org/PreOrder",
                     ["seller"] = new JsonObject { ["@type"] = "Organization", ["name"] = "A&S GIFIKS" }
                 }
@@ -39,8 +41,6 @@
                     ["@type"] = "AggregateOffer",
                     ["url"] = _canonical,
                     ["priceCurrency"] = "BAM",
-                    ["lowPrice"] = _product.Skus.Min(s => s.Price),
-                    ["highPrice"] = _product.Skus.Max(s => s.Price),
                     ["offerCount"] = _product.Skus.Count,
                     ["availability"] = _product.Skus.Any(s => s.StockBucket == "in") ? "https://schema.org/InStock" : "https://schema.org/PreOrder",
                     ["seller"] = new JsonObject { ["@type"] = "Organization", ["name"] = "A&S GIFIKS" }
@@ -194,17 +194,18 @@ else
                     </div>
 
                     <div class="asg-pdp-buybar">
+                        @* No figure on the PDP either — see ShopProductCard.
+                           The unit is still worth showing so the enquiry is
+                           unambiguous about what is being priced. *@
                         <div class="asg-pdp-price">
                             <span class="label">Cijena</span>
-                            @if (_isLoggedIn && currentSku is not null)
+                            @if (currentSku is not null)
                             {
-                                <span class="val">@ShopFormatting.FmtPrice(currentSku.Price)</span>
-                                <span class="uom">po @currentSku.Uom · bez PDV-a</span>
-                            }
-                            else if (currentSku is not null)
-                            {
-                                <span class="login">Prijava za partnersku cijenu</span>
-                                <span class="uom">po @currentSku.Uom</span>
+                                <span class="val">Na upit</span>
+                                @if (!string.IsNullOrWhiteSpace(currentSku.Uom))
+                                {
+                                    <span class="uom">po @currentSku.Uom</span>
+                                }
                             }
                             else
                             {
@@ -237,8 +238,8 @@ else
                     </div>
 
                     <div style="display:flex;gap:24px;font-size:13px;color:var(--asg-muted);border-top:1px solid var(--asg-line);padding-top:18px">
-                        <div><b style="color:var(--asg-ink);font-weight:600">Tehnička podrška:</b> +387 34 352 070</div>
-                        <div><b style="color:var(--asg-ink);font-weight:600">Isporuka:</b> 2–5 radnih dana</div>
+                        <div><b style="color:var(--asg-ink);font-weight:600">Tehnička podrška:</b> <a href="tel:+38734352050" style="color:inherit">+387 34 352 050</a></div>
+                        @* <div><b style="color:var(--asg-ink);font-weight:600">Isporuka:</b> 2–5 radnih dana</div> *@
                     </div>
                 </div>
             </div>

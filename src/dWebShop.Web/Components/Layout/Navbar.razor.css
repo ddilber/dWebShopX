@@ -109,15 +109,39 @@
 
 
 /* --- Hamburger --- */
+
+/* Visually hidden but still focusable, so the drawer stays keyboard-operable
+   (Tab to focus, Space to toggle). Not `display:none`/`hidden` — those drop it
+   out of the tab order. */
+.asg-nav-toggle {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    margin: 0;
+    pointer-events: none;
+}
+
+/* The bars are only 24x16; padding grows the touch area to 44x44 and the
+   matching negative margin keeps the bars visually where they were. */
 .asg-nav-hamburger {
     display: none;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 5px;
     background: none;
     border: none;
     cursor: pointer;
-    padding: 4px;
+    padding: 14px 10px;
+    margin: -14px -10px;
     flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.asg-nav-toggle:focus-visible ~ .asg-nav-hamburger {
+    outline: 2px solid var(--asg-accent);
+    outline-offset: 4px;
 }
 
 .asg-nav-hamburger span {
@@ -130,28 +154,33 @@
     transform-origin: center;
 }
 
-.asg-nav-hamburger.open span:nth-child(1) {
+.asg-nav-toggle:checked ~ .asg-nav-hamburger span:nth-child(1) {
     transform: rotate(45deg) translate(5px, 5px);
 }
 
-.asg-nav-hamburger.open span:nth-child(2) {
+.asg-nav-toggle:checked ~ .asg-nav-hamburger span:nth-child(2) {
     opacity: 0;
     transform: scaleX(0);
 }
 
-.asg-nav-hamburger.open span:nth-child(3) {
+.asg-nav-toggle:checked ~ .asg-nav-hamburger span:nth-child(3) {
     transform: rotate(-45deg) translate(5px, -5px);
 }
 
 /* --- Mobile menu --- */
+/* Always in the DOM; revealed only when the toggle is checked. */
 .asg-nav-mobile {
+    display: none;
     width: 100%;
     background: var(--asg-paper);
     border-top: 1px solid var(--asg-line);
     padding: 24px 0 0;
-    display: flex;
     flex-direction: column;
     gap: 0;
+}
+
+.asg-nav-toggle:checked ~ .asg-nav-mobile {
+    display: flex;
 }
 
 .asg-nav-mobile a {
@@ -177,6 +206,16 @@
 }
 
 /* --- Responsive --- */
+
+/* Eight top-level items only just fit at the desktop breakpoint — tighten the
+   run before it wraps rather than dropping to the drawer this early. */
+@media (max-width: 1180px) {
+    .asg-nav ul {
+        gap: 18px;
+        font-size: 13px;
+    }
+}
+
 @media (max-width: 920px) {
     .asg-nav ul {
         display: none;
@@ -184,6 +223,14 @@
 
     .asg-nav-hamburger {
         display: flex;
+    }
+}
+
+/* The toggle keeps its state across a resize, so an open drawer would
+   otherwise reappear on desktop where the hamburger is hidden. */
+@media (min-width: 921px) {
+    .asg-nav-toggle:checked ~ .asg-nav-mobile {
+        display: none;
     }
 }
 

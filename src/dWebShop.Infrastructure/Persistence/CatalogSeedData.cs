@@ -5,16 +5,17 @@ namespace dWebShop.Infrastructure.Persistence;
 // circular reference. Shape mirrors the legacy ShopData record types one-for-one.
 internal static class CatalogSeedData
 {
-    public record CategorySeed(string Slug, string Name, string Description);
+    public record CategorySeed(string Slug, string Name, string Description, string? ParentSlug = null);
     public record InfoRow(string Key, string Value);
-    public record DocSeed(string Name, string Size);
+    public record DocSeed(string Name, string Size, string Path = "");
     public record OptionSeed(string Name, string[] Values);
     public record SkuSeed(string[] Opts, decimal Price, string Stock, string Uom);
     public record ProductSeed(
         string Slug, string BrandSlug, string CategorySlug,
         string Name, string Short, string Desc,
         InfoRow[] Info, DocSeed[] Docs, string[] Tags,
-        OptionSeed[] Options, SkuSeed[] Skus);
+        OptionSeed[] Options, SkuSeed[] Skus,
+        string[]? Images = null);
 
     // Brand display data — overlays the minimal brand rows created in
     // SeedBrandsAsync so the rich marketing copy from the legacy site survives.
@@ -25,6 +26,7 @@ internal static class CatalogSeedData
         new("sto",    "STO",    "Fasadni i završni sistemi za energetsku efikasnost."),
         new("xypex",  "XYPEX",  "Kristalna hidroizolacija za beton."),
         new("cortec", "CORTEC", "Migrirajuća antikorozivna zaštita."),
+        new("manorteq", "MANORTEQ", "Brtvene trake, mortovi i pribor za hidroizolaciju betona — razvijeni za rad s Xypex sustavom."),
     ];
 
     public static readonly Dictionary<string, CategorySeed[]> CategoriesByBrand = new()
@@ -138,9 +140,9 @@ internal static class CatalogSeedData
             Short: "Kristalni dodatak betonu za integralnu hidroizolaciju.",
             Desc: "Dodaje se u beton tokom miješanja. Reaguje sa cementom i vlagom formirajući nerastvorljive kristale koji trajno blokiraju kapilarni transport vode. Beton ostaje paropropusan ali nepropusan za tečnu vodu.",
             Info: [new("Doziranje","1–3% mase cementa"), new("Aktivacija","Voda + cement (in-situ)"),
-                   new("Sertifikat","NSF/ANSI 61 (pitka voda)"), new("Pukotine","Zatvara do 0.4 mm"), new("Životni vijek","Trajno")],
+                   new("Certifikat","NSF/ANSI 61 (pitka voda)"), new("Pukotine","Zatvara do 0.4 mm"), new("Životni vijek","Trajno")],
             Docs: [new("Tehnički list (Admix C-1000)","480 KB"), new("Sigurnosno-tehnički list","210 KB"),
-                   new("NSF/ANSI 61 sertifikat","340 KB"), new("Studija slučaja — temelj rezervoara","1.8 MB")],
+                   new("NSF/ANSI 61 certifikat","340 KB"), new("Studija slučaja — temelj rezervoara","1.8 MB")],
             Tags: ["Hidroizolacija","Beton","Pitka voda"],
             Options: [new("Pakovanje", ["8 kg kutija","20 kg kutija"]),
                       new("Brzina vezivanja", ["Normal (NF)","Brza (C-1000 NF)"])],
@@ -192,7 +194,7 @@ internal static class CatalogSeedData
             Desc: "Polietilenska folija impregnirana isparljivim inhibitorima korozije. Štiti metal u zatvorenom prostoru — bez premaza, masti ili dehidracije. Aktivna do 5 godina.",
             Info: [new("Materijal","LDPE + VpCI"), new("Boja","Plava (transparentna)"),
                    new("Trajanje zaštite","Do 5 godina (zatvoreno)"), new("Reciklaža","Da, kao standardni PE")],
-            Docs: [new("Tehnički list","410 KB"), new("Sigurnosno-tehnički list","190 KB"), new("Sertifikat MIL-PRF-22019","320 KB")],
+            Docs: [new("Tehnički list","410 KB"), new("Sigurnosno-tehnički list","190 KB"), new("Certifikat MIL-PRF-22019", "320 KB")],
             Tags: ["Antikorozija","Skladištenje","Transport"],
             Options: [new("Širina", ["600 mm","900 mm","1200 mm","1500 mm"]),
                       new("Debljina", ["75 µm","100 µm","150 µm"])],

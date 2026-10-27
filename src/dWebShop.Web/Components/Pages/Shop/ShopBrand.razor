@@ -191,9 +191,9 @@ else
                         <span>@_filtered.Count rezultata</span>
                         <select @bind="_sortBy" @bind:after="ApplyFilters">
                             <option value="default">Sortiraj — Preporučeno</option>
+                            @* No price sorts: the listing quotes on request,
+                               so there is no figure to sort by. *@
                             <option value="name">Naziv (A–Z)</option>
-                            <option value="price-asc">Cijena (rastuće)</option>
-                            <option value="price-desc">Cijena (opadajuće)</option>
                         </select>
                     </div>
                     @if (_filtered.Count == 0)
@@ -309,9 +309,7 @@ else
         if (_filterTags.Count > 0) list = list.Where(p => p.Tags.Any(t => _filterTags.Contains(t)));
         list = _sortBy switch
         {
-            "price-asc"  => list.OrderBy(p => p.MinPrice ?? decimal.MaxValue),
-            "price-desc" => list.OrderByDescending(p => p.MinPrice ?? decimal.MinValue),
-            "name"       => list.OrderBy(p => p.Name),
+            "name" => list.OrderBy(p => p.Name),
             _            => list,
         };
         _filtered = list.ToList();

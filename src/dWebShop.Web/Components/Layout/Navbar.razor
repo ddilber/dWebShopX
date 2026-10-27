@@ -6,6 +6,12 @@
 @using MediatR
 
 <nav class="asg-nav">
+    @* Menu state lives in this checkbox, not in C#: the layout renders as
+       static SSR (see OnInitializedAsync below), so an @onclick handler here
+       would never be wired up on the client. CSS drives the drawer off
+       :checked instead. Must stay the first child — the rules use `~`. *@
+    <input type="checkbox" id="asg-nav-toggle" class="asg-nav-toggle" aria-label="Otvori meni" />
+
 	<a href="/" class="asg-brand">
 		<img class="asg-brand-mark"
 			 src="/images/logo.svg"
@@ -24,6 +30,7 @@
         <li><a href="/projects" class="@IsActive("/projects")">Projekti</a></li>
         <li><a href="/brands" class="@IsActive("/brands")">Brendovi</a></li>
         <li><a href="/shop" class="@IsActive("/shop")">Web Shop</a></li>
+        <li><a href="/aktualnosti" class="@IsActive("/aktualnosti")">Aktualnosti</a></li>
         <li><a href="/contact" class="@IsActive("/contact")">Kontakt</a></li>
     </ul>
 
@@ -53,29 +60,27 @@
         }
     </div>
 
-    <button class="asg-nav-hamburger @(_menuOpen ? "open" : "")" @onclick="ToggleMenu" aria-label="Meni">
+    <label for="asg-nav-toggle" class="asg-nav-hamburger">
         <span></span>
         <span></span>
         <span></span>
-    </button>
+    </label>
 
-    @if (_menuOpen)
-    {
-        <div class="asg-nav-mobile">
-            <a href="/" @onclick="CloseMenu">Početna</a>
-            <a href="/about" @onclick="CloseMenu">O Nama</a>
-            <a href="/services" @onclick="CloseMenu">Usluge</a>
-            <a href="/projects" @onclick="CloseMenu">Projekti</a>
-            <a href="/brands" @onclick="CloseMenu">Brendovi</a>
-            <a href="/shop" @onclick="CloseMenu">Web Shop</a>
-            <a href="/cart" @onclick="CloseMenu">Korpa</a>
-            <a href="/contact" @onclick="CloseMenu">Kontakt</a>
-        </div>
-    }
+    @* Always rendered; CSS shows it only when the toggle is checked. *@
+    <div class="asg-nav-mobile">
+        <a href="/">Početna</a>
+        <a href="/about">O Nama</a>
+        <a href="/services">Usluge</a>
+        <a href="/projects">Projekti</a>
+        <a href="/brands">Brendovi</a>
+        <a href="/shop">Web Shop</a>
+        <a href="/cart">Korpa</a>
+        <a href="/aktualnosti">Aktualnosti</a>
+        <a href="/contact">Kontakt</a>
+    </div>
 </nav>
 
 @code {
-    private bool _menuOpen = false;
     private bool _isAuthenticated;
     private string _chipLabel = "Prijava";
     private int _cartCount;
@@ -116,7 +121,4 @@
         var current = "/" + Nav.ToBaseRelativePath(Nav.Uri);
         return current == path ? "active" : "";
     }
-
-    private void ToggleMenu() => _menuOpen = !_menuOpen;
-    private void CloseMenu() => _menuOpen = false;
 }

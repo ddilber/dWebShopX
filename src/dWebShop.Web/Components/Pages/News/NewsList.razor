@@ -1,0 +1,197 @@
+@page "/aktualnosti"
+@layout MainLayout
+@rendermode InteractiveServer
+@using dWebShop.Application.Features.Blog.Queries
+@inject IMediator Mediator
+
+<PageTitle>Aktualnosti — A&amp;S GIFIKS</PageTitle>
+<HeadContent>
+    <link rel="canonical" href="https://asgifiks.ba/aktualnosti" />
+    <meta name="description" content="Novosti, obavijesti i objave iz A&S GIFIKS — projekti, sistemi i događaji iz STO, XYPEX, CORTEC i MANORTEQ programa." />
+    <meta property="og:title" content="Aktualnosti — A&amp;S GIFIKS" />
+    <meta property="og:description" content="Novosti, obavijesti i objave iz A&S GIFIKS." />
+    <meta property="og:url" content="https://asgifiks.ba/aktualnosti" />
+    @Seo.OgImageTags(null)
+</HeadContent>
+
+<div class="asg-page">
+
+<header class="asg-pageheader">
+    <div class="asg-wrap">
+        <div class="asg-pageheader-grid">
+            <div>
+                <div class="asg-eyebrow"><span class="dot"></span>Aktualnosti &middot; Novosti i obavijesti</div>
+                <h1>Aktual<em>nosti</em>.</h1>
+                <p class="asg-lede">
+                    Novosti iz kuće, obavijesti o sistemima i događajima, te objave s realiziranih
+                    projekata — na jednom mjestu.
+                </p>
+            </div>
+            <div class="asg-pageheader-meta">
+                <div><span>Objava</span><b>@_total</b></div>
+                <div><span>Oznaka</span><b>Aktualnosti</b></div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<section class="asg-section">
+    <div class="asg-wrap">
+        @if (_loading)
+        {
+            <div class="asg-news-empty">Učitavanje…</div>
+        }
+        else if (_posts.Count == 0)
+        {
+            <div class="asg-news-empty">
+                <p>Trenutno nema objava pod oznakom <b>Aktualnosti</b>.</p>
+                <p style="margin-top:12px">
+                    Javite nam se na <a href="/contact">kontakt stranici</a> — rado odgovaramo na
+                    tehnička pitanja i prije nego što o njima napišemo objavu.
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="asg-news-list">
+                @foreach (var (post, i) in _posts.Select((p, i) => (p, i)))
+                {
+                    <a href="/aktualnosti/@post.Slug" class="asg-news-row">
+                        <div class="idx">@(((_page - 1) * PageSize + i + 1).ToString("D3"))</div>
+                        <div class="body">
+                            <div class="meta">
+                                <span>@FormatDate(post.CreatedDate)</span>
+                                @foreach (var cat in post.CategoryNames.Take(2))
+                                {
+                                    <span>&middot;</span>
+                                    <span>@cat</span>
+                                }
+                            </div>
+                            <h3>@post.Title</h3>
+                            @if (!string.IsNullOrWhiteSpace(post.Summary))
+                            {
+                                <p>@Seo.PlainText(post.Summary, 240)</p>
+                            }
+                            @{
+                                // "Aktualnosti" is the tag that puts the post on
+                                // this page — printing it back on every row adds
+                                // nothing, so only the other tags are shown.
+                                var otherTags = post.TagNames
+                                    .Where(t => !string.Equals(t, TagName, StringComparison.OrdinalIgnoreCase))
+                                    .Take(3)
+                                    .ToList();
+                            }
+                            @if (otherTags.Count > 0)
+                            {
+                                <div class="tags">
+                                    @foreach (var t in otherTags)
+                                    {
+                                        <em>@t</em>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <span class="arr">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M5 12h14M13 5l7 7-7 7" />
+                            </svg>
+                        </span>
+                    </a>
+                }
+            </div>
+
+            @if (_totalPages > 1)
+            {
+                <nav class="asg-news-pager" aria-label="Stranice">
+                    <button disabled="@(_page <= 1)" @onclick="() => GoToPageAsync(_page - 1)">Prethodna</button>
+                    @for (var p = 1; p <= _totalPages; p++)
+                    {
+                        var target = p;
+                        <button class="@(target == _page ? "active" : "")" @onclick="() => GoToPageAsync(target)">@target</button>
+                    }
+                    <button disabled="@(_page >= _totalPages)" @onclick="() => GoToPageAsync(_page + 1)">Sljedeća</button>
+                </nav>
+            }
+        }
+    </div>
+</section>
+
+</div>
+
+<style>
+    .asg-news-list { border-top: 1px solid var(--asg-line); }
+    .asg-news-row { display: grid; grid-template-columns: 72px 1fr 32px; gap: 24px; align-items: start;
+        padding: 32px 0; border-bottom: 1px solid var(--asg-line); color: inherit;
+        text-decoration: none; transition: background .15s; }
+    .asg-news-row:hover { background: var(--asg-paper-soft); }
+    .asg-news-row .idx { font-family: var(--asg-mono); font-size: 12px; letter-spacing: .08em;
+        color: var(--asg-muted); padding-top: 4px; }
+    .asg-news-row .meta { font-family: var(--asg-mono); font-size: 11px; letter-spacing: .08em;
+        text-transform: uppercase; color: var(--asg-muted); display: flex; gap: 8px; flex-wrap: wrap; }
+    .asg-news-row h3 { font-size: 24px; font-weight: 600; letter-spacing: -.02em; line-height: 1.2;
+        margin: 10px 0 0; transition: color .15s; }
+    .asg-news-row:hover h3 { color: var(--asg-accent); }
+    .asg-news-row p { font-size: 15px; line-height: 1.6; color: var(--asg-muted);
+        margin: 10px 0 0; max-width: 72ch; }
+    .asg-news-row .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .asg-news-row .tags em { font-style: normal; font-family: var(--asg-mono); font-size: 10px;
+        letter-spacing: .08em; text-transform: uppercase; color: var(--asg-muted);
+        border: 1px solid var(--asg-line); padding: 4px 8px; }
+    .asg-news-row .arr { display: flex; align-items: center; justify-content: center;
+        width: 32px; height: 32px; border: 1px solid var(--asg-ink); transition: all .15s; margin-top: 4px; }
+    .asg-news-row:hover .arr { background: var(--asg-ink); color: var(--asg-paper); }
+
+    .asg-news-empty { padding: 80px 0; text-align: center; color: var(--asg-muted); font-size: 15px; }
+    .asg-news-empty a { color: var(--asg-accent); }
+
+    .asg-news-pager { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 48px; }
+    .asg-news-pager button { font-family: var(--asg-mono); font-size: 11px; letter-spacing: .08em;
+        text-transform: uppercase; padding: 10px 16px; background: transparent; cursor: pointer;
+        border: 1px solid var(--asg-line); color: var(--asg-ink); transition: all .15s; }
+    .asg-news-pager button:hover:not(:disabled) { border-color: var(--asg-ink); }
+    .asg-news-pager button.active { background: var(--asg-ink); color: var(--asg-paper); border-color: var(--asg-ink); }
+    .asg-news-pager button:disabled { opacity: .4; cursor: default; }
+
+    @@media (max-width: 760px) {
+        .asg-news-row { grid-template-columns: 1fr; gap: 0; }
+        .asg-news-row .idx { display: none; }
+        .asg-news-row .arr { display: none; }
+        .asg-news-row h3 { font-size: 20px; }
+    }
+</style>
+
+@code {
+    // The tag the client curates this page with. Posts are pulled by slug;
+    // the display name is only used to hide the tag from each row's chip list.
+    private const string TagSlug = "aktualnosti";
+    private const string TagName = "Aktualnosti";
+    private const int PageSize = 9;
+
+    private List<PostListItemDto> _posts = [];
+    private int _total;
+    private int _page = 1;
+    private bool _loading = true;
+
+    private int _totalPages => _total == 0 ? 0 : (int)Math.Ceiling(_total / (double)PageSize);
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task GoToPageAsync(int page)
+    {
+        if (page < 1 || page > _totalPages || page == _page) return;
+        _page = page;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await Mediator.Send(new GetPublishedPostsQuery(_page, PageSize, TagSlug: TagSlug));
+        _posts = result.Items;
+        _total = result.TotalCount;
+        _loading = false;
+    }
+
+    private static string FormatDate(DateTime? date) =>
+        date?.ToString("dd.MM.yyyy.") ?? "";
+}
