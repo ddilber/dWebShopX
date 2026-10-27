@@ -293,6 +293,109 @@ else
                 }
                 else
                 {
+                    <!-- Options: what the SKUs vary by (e.g. Pakiranje: 5 kg / 25 kg) -->
+                    <div class="ds-card">
+                        <div class="card-head">
+                            <div>
+                                <div class="card-title">Options</div>
+                                <div class="card-sub">What the SKUs differ by, such as packaging or colour. Each SKU picks one value per option.</div>
+                            </div>
+                        </div>
+
+                        @if (_optionError is not null)
+                        {
+                            <div style="background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger);border-radius:var(--r-md);padding:var(--sp-8) var(--sp-12);margin-bottom:var(--sp-12);font-size:var(--fs-300)">
+                                @_optionError
+                            </div>
+                        }
+
+                        @foreach (var opt in _options)
+                        {
+                            var o = opt;
+                            <div class="opt-block">
+                                <div class="opt-head">
+                                    @if (_editKind == "option" && _editId == o.Id)
+                                    {
+                                        <input class="ds-input" aria-label="Option name" @bind="_editText" @bind:event="oninput"
+                                               @onkeydown="@(e => OnEditKey(e))" />
+                                        <button class="ds-btn" disabled="@_optionBusy" @onclick="SaveEditAsync">Save</button>
+                                        <button class="ds-btn ds-btn-subtle" @onclick="CancelEdit">Cancel</button>
+                                    }
+                                    else
+                                    {
+                                        <span class="opt-name">@o.Name</span>
+                                        @if (o.IsNamePart) { <span class="ds-badge ds-badge-neutral" title="The value is used in the SKU name">in name</span> }
+                                        <span class="opt-spacer"></span>
+                                        @if (_confirmKind == "option" && _confirmId == o.Id)
+                                        {
+                                            <span class="opt-confirm">Delete option@(OptionUsage(o) > 0 ? $" and clear it from {OptionUsage(o)} SKU{(OptionUsage(o) == 1 ? "" : "s")}" : "")?</span>
+                                            <button class="ds-btn" style="color:var(--danger);border-color:var(--danger)" disabled="@_optionBusy"
+                                                    @onclick="@(() => DeleteOptionAsync(o.Id))">Delete</button>
+                                            <button class="ds-btn ds-btn-subtle" @onclick="@(() => _confirmKind = null)">Keep</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="ds-btn ds-btn-subtle" @onclick="@(() => StartEdit("option", o.Id, o.Name))">Rename</button>
+                                            <button class="ds-btn ds-btn-subtle" style="color:var(--danger)" @onclick="@(() => AskConfirm("option", o.Id))">Delete</button>
+                                        }
+                                    }
+                                </div>
+
+                                <div class="opt-values">
+                                    @foreach (var val in o.Values)
+                                    {
+                                        var v = val;
+                                        var used = ValueUsage(o, v);
+                                        if (_editKind == "value" && _editId == v.Id)
+                                        {
+                                            <span class="opt-chip is-editing">
+                                                <input class="ds-input" aria-label="Value name" @bind="_editText" @bind:event="oninput"
+                                                       @onkeydown="@(e => OnEditKey(e))" />
+                                                <button class="ds-btn" disabled="@_optionBusy" @onclick="SaveEditAsync">Save</button>
+                                                <button class="ds-btn ds-btn-subtle" @onclick="CancelEdit">Cancel</button>
+                                            </span>
+                                        }
+                                        else if (_confirmKind == "value" && _confirmId == v.Id)
+                                        {
+                                            <span class="opt-chip is-confirm">
+                                                Delete “@v.Name”@(used > 0 ? $" from {used} SKU{(used == 1 ? "" : "s")}" : "")?
+                                                <button class="opt-chip-btn" style="color:var(--danger)" disabled="@_optionBusy" @onclick="@(() => DeleteValueAsync(v.Id))">Delete</button>
+                                                <button class="opt-chip-btn" @onclick="@(() => _confirmKind = null)">Keep</button>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="opt-chip" title="@(used > 0 ? $"Used by {used} SKU{(used == 1 ? "" : "s")}" : "Not used by any SKU")">
+                                                <button class="opt-chip-label" title="Rename" @onclick="@(() => StartEdit("value", v.Id, v.Name))">@v.Name</button>
+                                                @if (used > 0) { <span class="opt-chip-count">@used</span> }
+                                                <button class="opt-chip-btn" aria-label="@($"Delete value {v.Name}")" title="Delete" @onclick="@(() => AskConfirm("value", v.Id))">×</button>
+                                            </span>
+                                        }
+                                    }
+                                    <span class="opt-add-value">
+                                        <input class="ds-input" aria-label="@($"New value for {o.Name}")" placeholder="Add value…"
+                                               value="@_newValue.GetValueOrDefault(o.Id)"
+                                               @oninput="@(e => _newValue[o.Id] = e.Value?.ToString() ?? "")"
+                                               @onkeydown="@(async e => { if (e.Key == "Enter") await AddValueAsync(o.Id); })" />
+                                        <button class="ds-btn" disabled="@(_optionBusy || string.IsNullOrWhiteSpace(_newValue.GetValueOrDefault(o.Id)))"
+                                                @onclick="@(() => AddValueAsync(o.Id))">Add</button>
+                                    </span>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="opt-new">
+                            <input class="ds-input" aria-label="New option name" placeholder="New option, e.g. Pakiranje"
+                                   @bind="_newOptionName" @bind:event="oninput"
+                                   @onkeydown="@(async e => { if (e.Key == "Enter") await AddOptionAsync(); })" />
+                            <label class="pl-check" title="Append this option's value to the SKU name">
+                                <input type="checkbox" @bind="_newOptionIsNamePart" />
+                                <span>Part of SKU name</span>
+                            </label>
+                            <button class="ds-btn" disabled="@(_optionBusy || string.IsNullOrWhiteSpace(_newOptionName))" @onclick="AddOptionAsync">Add option</button>
+                        </div>
+                    </div>
+
                     <div class="ds-card no-pad">
                         <div class="card-head" style="padding: var(--pad-card); padding-bottom: 0;">
                             <div>
@@ -678,6 +781,10 @@ else
         _categoryFilter = "";
         _error = null;
         _saved = false;
+        _optionError = null;
+        _editKind = null;
+        _confirmKind = null;
+        _newValue.Clear();
 
         if (!_isNew)
         {
@@ -775,6 +882,105 @@ else
                      || c.Name.Contains(_categoryFilter, StringComparison.OrdinalIgnoreCase)
                      || (c.ParentName?.Contains(_categoryFilter, StringComparison.OrdinalIgnoreCase) ?? false))
             .OrderByDescending(c => _form.CategoryIds.Contains(c.Id));
+
+    // ── Options management ────────────────────────────────
+    private string? _optionError;
+    private bool _optionBusy;
+    private string _newOptionName = "";
+    private bool _newOptionIsNamePart = true;
+    private readonly Dictionary<int, string> _newValue = new();
+    private string? _editKind;     // "option" | "value" — inline rename in progress
+    private int _editId;
+    private string _editText = "";
+    private string? _confirmKind;  // "option" | "value" — delete awaiting confirmation
+    private int _confirmId;
+
+    // SKU DTOs carry option/value names, so usage is counted by name within this product.
+    private int OptionUsage(ProductOptionDto o) => _skus.Count(s => s.Options.Any(x => x.OptionName == o.Name));
+    private int ValueUsage(ProductOptionDto o, ProductOptionValueDto v) =>
+        _skus.Count(s => s.Options.Any(x => x.OptionName == o.Name && x.OptionValueName == v.Name));
+
+    private void StartEdit(string kind, int id, string text)
+    {
+        _editKind = kind; _editId = id; _editText = text; _confirmKind = null; _optionError = null;
+    }
+
+    private void CancelEdit() => _editKind = null;
+
+    private void AskConfirm(string kind, int id)
+    {
+        _confirmKind = kind; _confirmId = id; _editKind = null; _optionError = null;
+    }
+
+    private async Task OnEditKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SaveEditAsync();
+        else if (e.Key == "Escape") CancelEdit();
+    }
+
+    // Runs an option/value command, shows validation messages plainly, and reloads
+    // options and SKUs so names and usage counts stay in step.
+    private async Task<bool> RunOptionCommandAsync(Func<Task> command)
+    {
+        _optionError = null;
+        _optionBusy = true;
+        try
+        {
+            await command();
+            await ReloadSkusAsync();
+            return true;
+        }
+        catch (FluentValidation.ValidationException vex)
+        {
+            _optionError = string.Join(" ", vex.Errors.Select(e => e.ErrorMessage).Distinct());
+        }
+        catch (Exception ex)
+        {
+            _optionError = ex.Message;
+        }
+        finally
+        {
+            _optionBusy = false;
+        }
+        return false;
+    }
+
+    private async Task AddOptionAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newOptionName) || _detail is null) return;
+        if (await RunOptionCommandAsync(() => Mediator.Send(new CreateProductOptionCommand(_detail.Id, _newOptionName, _newOptionIsNamePart))))
+            _newOptionName = "";
+    }
+
+    private async Task AddValueAsync(int optionId)
+    {
+        var name = _newValue.GetValueOrDefault(optionId);
+        if (string.IsNullOrWhiteSpace(name) || _detail is null) return;
+        if (await RunOptionCommandAsync(() => Mediator.Send(new CreateProductOptionValueCommand(_detail.Id, optionId, name))))
+            _newValue[optionId] = "";
+    }
+
+    private async Task SaveEditAsync()
+    {
+        if (_editKind is null || string.IsNullOrWhiteSpace(_editText)) return;
+        Func<Task> command = _editKind == "option"
+            ? () => Mediator.Send(new RenameProductOptionCommand(_editId, _editText))
+            : () => Mediator.Send(new RenameProductOptionValueCommand(_editId, _editText));
+        if (await RunOptionCommandAsync(command))
+            _editKind = null;
+    }
+
+    private async Task DeleteOptionAsync(int id)
+    {
+        if (await RunOptionCommandAsync(() => Mediator.Send(new DeleteProductOptionCommand(id))))
+            _confirmKind = null;
+    }
+
+    private async Task DeleteValueAsync(int id)
+    {
+        if (await RunOptionCommandAsync(() => Mediator.Send(new DeleteProductOptionValueCommand(id))))
+            _confirmKind = null;
+    }
 
     private void ToggleCategory(int id, bool selected)
     {

@@ -12,12 +12,12 @@ public class ValidationBehaviour<TRequest, TResponse>(IEnumerable<IValidator<TRe
         if (!validators.Any())
             return await next();
 
+        // Async so validators may use MustAsync (e.g. uniqueness checks). Sequential,
+        // not Task.WhenAll: validators can share the request's scoped DbContext.
         var context = new ValidationContext<TRequest>(request);
-        var failures = validators
-            .Select(v => v.Validate(context))
-            .SelectMany(r => r.Errors)
-            .Where(f => f is not null)
-            .ToList();
+        var failures = new List<FluentValidation.Results.ValidationFailure>();
+        foreach (var v in validators)
+            failures.AddRange((await v.ValidateAsync(context, ct)).Errors.Where(f => f is not null));
 
         if (failures.Count > 0)
             throw new ValidationException(failures);
