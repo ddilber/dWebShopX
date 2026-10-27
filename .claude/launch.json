@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/dWebShop.Web/dWebShop.Web.csproj", "--urls", "http://localhost:5010"],
+      "port": 5010
+    },
+    {
+      "name": "web-net10",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/dWebShop.Web/dWebShop.Web.csproj", "--urls", "http://localhost:5010", "-p:RollForward=Major"],
+      "port": 5010
+    },
+    {
+      "name": "admin",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/dWebShop.Admin/dWebShop.Admin.csproj", "--urls", "http://localhost:5270"],
+      "port": 5270
+    }
+  ]
+}

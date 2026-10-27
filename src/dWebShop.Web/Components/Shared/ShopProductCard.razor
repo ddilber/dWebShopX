@@ -25,16 +25,11 @@
         @* Short may contain stored HTML — flatten to text; CSS clamps it to 2 lines. *@
         <p>@Seo.PlainText(Product.Short, 0)</p>
         <div class="asg-pcard-foot">
+            @* The storefront never prints a figure: every article is quoted on
+               request, logged in or not. Partner prices live in the offer. *@
             <div class="asg-pcard-price">
-                <span class="from">Cijena od</span>
-                @if (IsLoggedIn && Product.MinPrice.HasValue)
-                {
-                    <span class="val">@ShopFormatting.FmtPrice(Product.MinPrice.Value)</span>
-                }
-                else
-                {
-                    <span class="login">Prijava za cijenu</span>
-                }
+                <span class="from">Cijena</span>
+                <span class="login">Na upit</span>
             </div>
             <div class="asg-pcard-arrow">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:14px;height:14px">

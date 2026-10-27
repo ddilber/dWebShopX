@@ -1,0 +1,89 @@
+@page "/access-denied"
+@layout LoginLayout
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Antiforgery
+@inject IAntiforgery Antiforgery
+@inject IHttpContextAccessor HttpContextAccessor
+
+<PageTitle>Access denied — dWebShop Admin</PageTitle>
+
+@* Reached when sign-in succeeded but the account fails an
+   [Authorize(Roles = "Admin")] check. Configured as
+   ConfigureApplicationCookie(AccessDeniedPath) in Program.cs — without a page
+   here the redirect 404s and hides the real problem, so this one names the
+   account and the roles it actually has. *@
+
+<div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--colorNeutralBackground2);">
+    <FluentCard Style="width: 460px; padding: 32px;">
+        <h1 style="margin: 0 0 8px; font-size: 20px;">Access denied</h1>
+
+        @if (_isAuthenticated)
+        {
+            <p style="margin: 0 0 20px; color: var(--fg-2); line-height: 1.5;">
+                You are signed in, but this account does not have the
+                <b>Admin</b> role that the admin pages require.
+            </p>
+
+            <div style="border: 1px solid var(--stroke-1); border-radius: var(--r-md); padding: 14px; margin-bottom: 20px;">
+                <div style="display:flex; justify-content:space-between; gap:12px; margin-bottom:6px;">
+                    <span style="color: var(--fg-3);">Signed in as</span>
+                    <b style="text-align:right; word-break:break-all;">@_name</b>
+                </div>
+                <div style="display:flex; justify-content:space-between; gap:12px;">
+                    <span style="color: var(--fg-3);">Roles</span>
+                    <b style="text-align:right;">@(_roles.Count > 0 ? string.Join(", ", _roles) : "none")</b>
+                </div>
+            </div>
+
+            <p style="margin: 0 0 20px; color: var(--fg-2); line-height: 1.5; font-size: 14px;">
+                If the role was granted recently, sign out and back in — roles are
+                stamped into the cookie at sign-in, so an older session still
+                shows the old ones.
+            </p>
+
+            @* UseAntiforgery() is in the pipeline and /logout does not opt out,
+               so the token is required — same as MainLayout's sign-out form. *@
+            <form method="post" action="/logout">
+                @if (HttpContextAccessor.HttpContext is not null)
+                {
+                    <input type="hidden" name="__RequestVerificationToken"
+                           value="@Antiforgery.GetAndStoreTokens(HttpContextAccessor.HttpContext!).RequestToken" />
+                }
+                <button type="submit" class="ds-btn"
+                        style="background:var(--accent-rest);color:#fff;border-color:var(--accent-rest);height:34px;">
+                    Sign out
+                </button>
+            </form>
+        }
+        else
+        {
+            <p style="margin: 0 0 20px; color: var(--fg-2); line-height: 1.5;">
+                You need to sign in to view this page.
+            </p>
+            <a class="ds-btn" href="/login"
+               style="background:var(--accent-rest);color:#fff;border-color:var(--accent-rest);height:34px;">
+                Go to sign in
+            </a>
+        }
+    </FluentCard>
+</div>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private bool _isAuthenticated;
+    private string _name = "";
+    private List<string> _roles = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState is null) return;
+
+        var user = (await AuthState).User;
+        _isAuthenticated = user.Identity?.IsAuthenticated ?? false;
+        if (!_isAuthenticated) return;
+
+        _name = user.Identity?.Name ?? "unknown";
+        _roles = user.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+    }
+}

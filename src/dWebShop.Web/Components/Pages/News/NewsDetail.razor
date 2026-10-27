@@ -1,0 +1,148 @@
+@page "/aktualnosti/{slug}"
+@layout MainLayout
+@using dWebShop.Application.Features.Blog.Queries
+@inject IMediator Mediator
+
+@if (_post is null)
+{
+    <PageTitle>Objava nije pronađena — A&amp;S GIFIKS</PageTitle>
+    <HeadContent>
+        <meta name="robots" content="noindex,follow" />
+    </HeadContent>
+    <div class="asg-page" style="padding:120px 0">
+        <div class="asg-wrap" style="text-align:center">
+            <h2 class="asg-h2">Objava nije pronađena</h2>
+            <p class="asg-lede" style="margin-top:16px">
+                Vratite se na <a href="/aktualnosti" style="color:var(--asg-accent)">Aktualnosti</a>.
+            </p>
+        </div>
+    </div>
+}
+else
+{
+    var canonical = $"https://asgifiks.ba/aktualnosti/{_post.Slug}";
+    var title = string.IsNullOrWhiteSpace(_post.MetaTitle) ? _post.Title : _post.MetaTitle;
+    var description = string.IsNullOrWhiteSpace(_post.MetaDescription)
+        ? Seo.PlainText(string.IsNullOrWhiteSpace(_post.Summary) ? _post.Content : _post.Summary, 200)
+        : _post.MetaDescription;
+
+    <PageTitle>@title — A&amp;S GIFIKS</PageTitle>
+    <HeadContent>
+        <link rel="canonical" href="@canonical" />
+        <meta name="description" content="@description" />
+        <meta property="og:title" content="@title" />
+        <meta property="og:description" content="@description" />
+        <meta property="og:url" content="@canonical" />
+        <meta property="og:type" content="article" />
+        @Seo.OgImageTags(null, _post.Title)
+        @Seo.JsonLd(new JsonObject {
+            ["@type"] = "NewsArticle",
+            ["headline"] = _post.Title,
+            ["description"] = description,
+            ["url"] = canonical,
+            ["datePublished"] = _post.CreatedDate?.ToString("yyyy-MM-dd"),
+            ["publisher"] = new JsonObject {
+                ["@type"] = "Organization",
+                ["name"] = "A&S GIFIKS",
+                ["url"] = "https://asgifiks.ba"
+            }
+        })
+    </HeadContent>
+
+    <div class="asg-page">
+
+    <header class="asg-pageheader">
+        <div class="asg-wrap">
+            <nav class="asg-shop-crumbs" style="margin-bottom:24px">
+                <a href="/aktualnosti">Aktualnosti</a>
+                <span class="sep">/</span>
+                <span class="cur">@_post.Title</span>
+            </nav>
+            <div class="asg-eyebrow">
+                <span class="dot"></span>
+                @FormatDate(_post.CreatedDate)
+                @foreach (var cat in _post.Categories.Take(2))
+                {
+                    <span>&middot; @cat.Name</span>
+                }
+            </div>
+            <h1 style="margin-top:24px">@_post.Title</h1>
+            @if (!string.IsNullOrWhiteSpace(_post.Summary))
+            {
+                <p class="asg-lede">@Seo.PlainText(_post.Summary, 0)</p>
+            }
+        </div>
+    </header>
+
+    <section class="asg-section">
+        <div class="asg-wrap">
+            <div class="asg-news-article">
+                @* Content is admin-authored rich text (RichTextEditor in the
+                   admin app) — rendered as markup so the formatting survives.
+                   Source is trusted: Admin-only edits. *@
+                @((MarkupString)_post.Content)
+            </div>
+
+            @if (_post.Tags.Count > 0)
+            {
+                <div class="asg-news-tags">
+                    @foreach (var t in _post.Tags)
+                    {
+                        <em>@t.Name</em>
+                    }
+                </div>
+            }
+
+            <div class="asg-news-back">
+                <a href="/aktualnosti" class="asg-btn asg-btn-sec">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 12H5M11 19l-7-7 7-7" />
+                    </svg>
+                    Sve aktualnosti
+                </a>
+            </div>
+        </div>
+    </section>
+
+    </div>
+
+    <style>
+        .asg-news-article { max-width: 74ch; font-size: 17px; line-height: 1.7; }
+        .asg-news-article > *:first-child { margin-top: 0; }
+        .asg-news-article p { margin: 0 0 20px; }
+        .asg-news-article h2 { font-size: 28px; font-weight: 600; letter-spacing: -.02em;
+            line-height: 1.2; margin: 40px 0 16px; }
+        .asg-news-article h3 { font-size: 21px; font-weight: 600; letter-spacing: -.015em;
+            line-height: 1.25; margin: 32px 0 12px; }
+        .asg-news-article ul, .asg-news-article ol { margin: 0 0 20px; padding-left: 22px; }
+        .asg-news-article li { margin-bottom: 8px; }
+        .asg-news-article a { color: var(--asg-accent); }
+        .asg-news-article img { max-width: 100%; height: auto; display: block; margin: 28px 0; }
+        .asg-news-article blockquote { margin: 28px 0; padding-left: 24px;
+            border-left: 2px solid var(--asg-accent); color: var(--asg-muted); }
+        .asg-news-article table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 15px; }
+        .asg-news-article th, .asg-news-article td { border: 1px solid var(--asg-line);
+            padding: 10px 12px; text-align: left; }
+
+        .asg-news-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 48px;
+            padding-top: 24px; border-top: 1px solid var(--asg-line); }
+        .asg-news-tags em { font-style: normal; font-family: var(--asg-mono); font-size: 10px;
+            letter-spacing: .08em; text-transform: uppercase; color: var(--asg-muted);
+            border: 1px solid var(--asg-line); padding: 5px 9px; }
+        .asg-news-back { margin-top: 32px; }
+    </style>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+
+    private PostDto? _post;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _post = await Mediator.Send(new GetPostBySlugQuery(Slug));
+    }
+
+    private static string FormatDate(DateTime? date) =>
+        date?.ToString("dd.MM.yyyy.") ?? "";
+}

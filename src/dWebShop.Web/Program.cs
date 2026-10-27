@@ -1,6 +1,7 @@
 using System.Text;
 using System.Xml;
 using dWebShop.Application;
+using dWebShop.Application.Features.Blog.Queries;
 using dWebShop.Application.Features.Brands.Queries;
 using dWebShop.Application.Features.Inspirations.Queries;
 using dWebShop.Application.Features.Products.Queries;
@@ -114,6 +115,7 @@ app.MapGet("/sitemap.xml", async (IMediator mediator, IConfiguration config) =>
         ($"{baseUrl}/brands",    today, "monthly", "0.8"),
         ($"{baseUrl}/contact",   today, "yearly",  "0.5"),
         ($"{baseUrl}/shop",      today, "weekly",  "0.9"),
+        ($"{baseUrl}/aktualnosti", today, "weekly", "0.7"),
         ($"{baseUrl}/privacy",   today, "yearly",  "0.2"),
         ($"{baseUrl}/terms",     today, "yearly",  "0.2"),
     };
@@ -152,6 +154,23 @@ app.MapGet("/sitemap.xml", async (IMediator mediator, IConfiguration config) =>
     catch
     {
         // If the DB is unavailable, still serve a partial sitemap rather than 500.
+    }
+
+    try
+    {
+        // Aktualnosti — the public blog list is curated by this tag, so the
+        // sitemap follows the same filter the page does.
+        var news = await mediator.Send(new GetPublishedPostsQuery(
+            Page: 1,
+            PageSize: int.MaxValue,
+            TagSlug: "aktualnosti"));
+        foreach (var post in news.Items)
+            entries.Add(($"{baseUrl}/aktualnosti/{post.Slug}",
+                post.CreatedDate?.ToString("yyyy-MM-dd"), "monthly", "0.6"));
+    }
+    catch
+    {
+        // Posts unavailable — skip those entries.
     }
 
     using var ms = new MemoryStream();

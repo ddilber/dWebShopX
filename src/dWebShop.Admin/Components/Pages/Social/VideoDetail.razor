@@ -1,0 +1,254 @@
+@page "/social/video/new"
+@page "/social/video/{Id:int}"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using MediatR
+@using dWebShop.Application.Features.Social.Commands
+@using dWebShop.Application.Features.Social.Queries
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+
+<PageTitle>@(_isNew ? "New video" : "Edit video") — dWebShop Admin</PageTitle>
+
+<ImagePickerDialog @ref="_posterPicker" OnAccepted="SetPoster" SubFolder="social_videos" SingleSelect="true" />
+
+@if (_loading)
+{
+    <FluentProgressRing />
+}
+else if (_notFound)
+{
+    <FluentMessageBar Intent="MessageBarIntent.Error">Video not found.</FluentMessageBar>
+}
+else
+{
+    <div class="admin-page-head">
+        <div>
+            <nav class="admin-breadcrumb">
+                <a href="/social">Content</a> › <a href="/social">Društvene mreže</a> ›
+                @(_isNew ? "New video" : (_caption is { Length: > 0 } c ? c : "Untitled"))
+            </nav>
+            <h1 class="admin-page-title">@(_isNew ? "New video" : "Edit video")</h1>
+        </div>
+        <div class="admin-page-actions">
+            <FluentButton Appearance="ButtonAppearance.Transparent"
+                          IconStart="@(new Icons.Regular.Size16.ArrowLeft())"
+                          OnClick="@(() => Navigation.NavigateTo("/social"))">Back</FluentButton>
+            @if (!_isNew)
+            {
+                @if (_confirmingDelete)
+                {
+                    <button class="ds-btn ds-btn-subtle" disabled="@_deleting"
+                            @onclick="@(() => _confirmingDelete = false)">Cancel</button>
+                    <button class="ds-btn" style="color:var(--danger);border-color:var(--danger)"
+                            disabled="@_deleting" @onclick="DeleteAsync">
+                        @(_deleting ? "Deleting…" : "Confirm delete")
+                    </button>
+                }
+                else
+                {
+                    <button class="ds-btn ds-btn-subtle" style="color:var(--danger)"
+                            @onclick="@(() => _confirmingDelete = true)">Delete</button>
+                }
+            }
+            <FluentButton Appearance="ButtonAppearance.Primary"
+                          IconStart="@(new Icons.Regular.Size16.Checkmark())"
+                          Disabled="@_saving"
+                          OnClick="SaveAsync">
+                @if (_saving) { <span>Saving…</span> } else { <span>@(_isNew ? "Create video" : "Save changes")</span> }
+            </FluentButton>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <FluentMessageBar Intent="MessageBarIntent.Error" Style="margin-bottom: 16px;">@_error</FluentMessageBar>
+    }
+    @if (!string.IsNullOrEmpty(_success))
+    {
+        <FluentMessageBar Intent="MessageBarIntent.Success" Style="margin-bottom: 16px;">@_success</FluentMessageBar>
+    }
+
+    <div class="admin-detail-grid">
+        <div class="admin-detail-main">
+            <FluentCard>
+                <div class="order-card-title" style="margin-bottom: 16px;">Video</div>
+                <div class="pl-form-grid">
+                    <div class="pl-field">
+                        <label class="co-label" for="sv-platform">Platform</label>
+                        <input id="sv-platform" class="co-input" @bind="_platform" placeholder="TikTok" />
+                        <div class="pl-hint">Shown top-left on the poster.</div>
+                    </div>
+                    <div class="pl-field">
+                        <label class="co-label" for="sv-caption">Caption</label>
+                        <input id="sv-caption" class="co-input" @bind="_caption"
+                               placeholder="What the video shows" />
+                    </div>
+                    <div class="pl-field">
+                        <label class="co-label" for="sv-duration">Duration</label>
+                        <input id="sv-duration" class="co-input" @bind="_duration" placeholder="0:42" />
+                    </div>
+                </div>
+            </FluentCard>
+
+            <FluentCard>
+                <div class="order-card-title" style="margin-bottom: 16px;">Links</div>
+                <div class="pl-form-grid">
+                    <div class="pl-field">
+                        <label class="co-label" for="sv-embed">Embed URL</label>
+                        <input id="sv-embed" class="co-input" @bind="_embedUrl"
+                               placeholder="https://www.tiktok.com/embed/v2/1234567890" />
+                        <div class="pl-hint">
+                            The <b>embed</b> URL, not the page URL —
+                            TikTok <code>tiktok.com/embed/v2/{videoId}</code>,
+                            Instagram <code>instagram.com/reel/{code}/embed</code>.
+                            Leave empty and the card links out instead of playing inline.
+                        </div>
+                    </div>
+                    <div class="pl-field">
+                        <label class="co-label" for="sv-fallback">Fallback link</label>
+                        <input id="sv-fallback" class="co-input" @bind="_fallbackUrl"
+                               placeholder="https://www.instagram.com/asgifiks/" />
+                        <div class="pl-hint">Where the card goes when there is no embed URL.</div>
+                    </div>
+                </div>
+            </FluentCard>
+        </div>
+
+        <div class="admin-detail-side">
+            <FluentCard>
+                <div class="order-card-title" style="margin-bottom: 12px;">Visibility</div>
+                <label class="pl-toggle">
+                    <input type="checkbox" @bind="_published" />
+                    <span>Published</span>
+                </label>
+                <div class="pl-hint" style="margin-top: 8px;">
+                    @(_published
+                        ? "Eligible for the homepage — the first 3 published videos are shown."
+                        : "Hidden from the homepage.")
+                </div>
+            </FluentCard>
+
+            <FluentCard>
+                <div class="order-card-title" style="margin-bottom: 12px;">Poster image</div>
+                @if (!string.IsNullOrWhiteSpace(_posterImage))
+                {
+                    <img src="/@_posterImage.TrimStart('/')" alt=""
+                         style="width:100%;aspect-ratio:9/14;object-fit:cover;display:block;margin-bottom:10px;border:1px solid var(--stroke-1)" />
+                }
+                else
+                {
+                    <div class="pl-side-empty" style="margin-bottom: 10px;">
+                        No poster — the card falls back to a placeholder pattern.
+                    </div>
+                }
+                <div style="display:flex; gap:8px;">
+                    <button class="ds-btn" @onclick="@(async () => await _posterPicker.Show())">Pick image</button>
+                    @if (!string.IsNullOrWhiteSpace(_posterImage))
+                    {
+                        <button class="ds-btn ds-btn-subtle" @onclick="@(() => _posterImage = "")">Clear</button>
+                    }
+                </div>
+            </FluentCard>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private ImagePickerDialog _posterPicker = default!;
+
+    private string _platform = "TikTok";
+    private string _caption = "";
+    private string _duration = "";
+    private string _posterImage = "";
+    private string _embedUrl = "";
+    private string _fallbackUrl = "";
+    private bool _published = true;
+
+    private bool _isNew => Id is null;
+    private bool _loading = true;
+    private bool _notFound;
+    private bool _saving;
+    private bool _confirmingDelete;
+    private bool _deleting;
+    private string _error = "";
+    private string _success = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (_isNew)
+        {
+            _loading = false;
+            return;
+        }
+
+        var dto = await Mediator.Send(new GetSocialVideoByIdQuery(Id!.Value));
+        if (dto is null)
+        {
+            _notFound = true;
+            _loading = false;
+            return;
+        }
+
+        _platform = dto.Platform;
+        _caption = dto.Caption;
+        _duration = dto.Duration;
+        _posterImage = dto.PosterImage;
+        _embedUrl = dto.EmbedUrl;
+        _fallbackUrl = dto.FallbackUrl;
+        _published = dto.Published;
+        _loading = false;
+    }
+
+    private void SetPoster(List<string> files)
+    {
+        if (files.Count > 0) _posterImage = files[0];
+    }
+
+    private async Task SaveAsync()
+    {
+        _error = "";
+        _success = "";
+        _saving = true;
+        try
+        {
+            if (_isNew)
+            {
+                var id = await Mediator.Send(new CreateSocialVideoCommand(
+                    _platform, _caption, _duration, _posterImage,
+                    _embedUrl, _fallbackUrl, _published));
+                Navigation.NavigateTo($"/social/video/{id}");
+                return;
+            }
+
+            await Mediator.Send(new UpdateSocialVideoCommand(
+                Id!.Value, _platform, _caption, _duration, _posterImage,
+                _embedUrl, _fallbackUrl, _published));
+            _success = "Video saved.";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        _saving = false;
+    }
+
+    private async Task DeleteAsync()
+    {
+        _error = "";
+        _deleting = true;
+        try
+        {
+            await Mediator.Send(new DeleteSocialVideoCommand(Id!.Value));
+            Navigation.NavigateTo("/social");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            _deleting = false;
+            _confirmingDelete = false;
+        }
+    }
+}

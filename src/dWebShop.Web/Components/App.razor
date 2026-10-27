@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    <meta name="description" content="ASGifiks — ovlašteni distributer STO, XYPEX i CORTEC sistema za BiH. Fasadni sistemi, kristalna hidroizolacija betona i antikorozivna zaštita. Tomislavgrad, od 1998." />
+    <meta name="description" content="ASGifiks — ovlašteni distributer STO, XYPEX, CORTEC i MANORTEQ sistema za BiH. Fasadni sistemi, kristalna hidroizolacija betona i antikorozivna zaštita. Tomislavgrad, od 1998." />
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1" />
     <meta name="theme-color" content="#00335E" />
     <meta property="og:site_name" content="A&amp;S GIFIKS" />
@@ -62,6 +62,15 @@
 
             window.addEventListener('popstate', toTop);
         })();
+
+        // The mobile nav drawer is a CSS :checked toggle (see Navbar.razor).
+        // Enhanced navigation patches the DOM rather than reloading it, so the
+        // checkbox survives a link click and the drawer would stay open on the
+        // page you just navigated to. Close it on every enhanced navigation.
+        document.addEventListener('enhancedload', function() {
+            var t = document.getElementById('asg-nav-toggle');
+            if (t) t.checked = false;
+        });
 
         // Scroll-triggered animations for .animate-on-scroll elements
         (function() {

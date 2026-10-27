@@ -1,0 +1,253 @@
+@page "/social"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using MediatR
+@using dWebShop.Application.Features.Social.Commands
+@using dWebShop.Application.Features.Social.Queries
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+
+<PageTitle>Društvene mreže — dWebShop Admin</PageTitle>
+
+<div class="admin-page-head">
+    <div>
+        <nav class="admin-breadcrumb">
+            <a href="/social">Content</a> › Društvene mreže
+        </nav>
+        <h1 class="admin-page-title">Društvene mreže</h1>
+        <p class="admin-page-sub">
+            Drives block 06 on the homepage — profile links and the video strip.
+        </p>
+    </div>
+    <div class="admin-page-actions">
+        <FluentButton Appearance="ButtonAppearance.Primary"
+                      IconStart="@(new Icons.Regular.Size16.Add())"
+                      OnClick="@(() => Navigation.NavigateTo("/social/video/new"))">
+            New video
+        </FluentButton>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <FluentMessageBar Intent="MessageBarIntent.Error" Style="margin-bottom: 16px;">@_error</FluentMessageBar>
+}
+@if (!string.IsNullOrEmpty(_success))
+{
+    <FluentMessageBar Intent="MessageBarIntent.Success" Style="margin-bottom: 16px;">@_success</FluentMessageBar>
+}
+
+@if (_loading)
+{
+    <FluentProgressRing />
+}
+else
+{
+    @* ── Profiles ──────────────────────────────────────── *@
+    <FluentCard style="margin-bottom: 20px;">
+        <div class="order-card-title" style="margin-bottom: 6px;">Profile links</div>
+        <div class="pl-hint" style="margin-bottom: 16px;">
+            <b>Key</b> picks the icon — use <code>facebook</code>, <code>instagram</code> or
+            <code>tiktok</code>. Anything else still works but shows a generic link icon.
+        </div>
+
+        @if (_profiles.Count == 0)
+        {
+            <div class="pl-side-empty" style="margin-bottom: 12px;">No profiles yet.</div>
+        }
+        else
+        {
+            <div class="soc-head">
+                <span>Key</span><span>Name</span><span>Handle</span><span>URL</span><span>Live</span><span></span>
+            </div>
+            @foreach (var p in _profiles)
+            {
+                var row = p;
+                <div class="soc-row">
+                    <input class="co-input" value="@row.Key"
+                           @oninput="e => row.Key = e.Value?.ToString() ?? string.Empty" placeholder="instagram" />
+                    <input class="co-input" value="@row.Name"
+                           @oninput="e => row.Name = e.Value?.ToString() ?? string.Empty" placeholder="Instagram" />
+                    <input class="co-input" value="@row.Handle"
+                           @oninput="e => row.Handle = e.Value?.ToString() ?? string.Empty" placeholder="@("@asgifiks")" />
+                    <input class="co-input" value="@row.Url"
+                           @oninput="e => row.Url = e.Value?.ToString() ?? string.Empty" placeholder="https://…" />
+                    <label class="pl-check" style="margin:0">
+                        <input type="checkbox" checked="@row.Published"
+                               @onchange="e => row.Published = (bool)e.Value!" />
+                    </label>
+                    <button class="ds-btn ds-btn-subtle" style="color:var(--danger)"
+                            @onclick="@(() => _profiles.Remove(row))">Remove</button>
+                </div>
+            }
+        }
+
+        <div style="display:flex; gap:8px; margin-top:14px;">
+            <button class="ds-btn" @onclick="AddProfileRow">+ Add network</button>
+            <button class="ds-btn" style="background:var(--accent-rest);color:#fff;border-color:var(--accent-rest)"
+                    disabled="@_savingProfiles" @onclick="SaveProfilesAsync">
+                @(_savingProfiles ? "Saving…" : "Save profile links")
+            </button>
+        </div>
+    </FluentCard>
+
+    @* ── Videos ────────────────────────────────────────── *@
+    <FluentCard>
+        <div class="order-card-title" style="margin-bottom: 6px;">Videos</div>
+        <div class="pl-hint" style="margin-bottom: 16px;">
+            The homepage shows the first <b>3</b> published videos, in this order.
+            A video with no embed URL links out to its fallback link instead of playing inline.
+        </div>
+
+        @if (_videos.Count == 0)
+        {
+            <div class="co-empty-items">No videos yet. Add one to fill the strip.</div>
+        }
+        else
+        {
+            <FluentDataGrid Items="@_videos.AsQueryable()" TGridItem="SocialVideoDto">
+                <TemplateColumn Title="#" Width="60px">
+                    @{ var pos = _videos.FindIndex(v => v.Id == context.Id); }
+                    <span class="@(pos < 3 && context.Published ? "pl-badge pl-badge-active" : "pl-badge pl-badge-inactive")">
+                        @(pos + 1)
+                    </span>
+                </TemplateColumn>
+                <PropertyColumn Title="Platform" Property="@(v => v.Platform)" />
+                <PropertyColumn Title="Caption" Property="@(v => v.Caption)" />
+                <TemplateColumn Title="Mode">
+                    @(string.IsNullOrWhiteSpace(context.EmbedUrl) ? "Links out" : "Plays inline")
+                </TemplateColumn>
+                <TemplateColumn Title="Status">
+                    <span class="pl-badge @(context.Published ? "pl-badge-active" : "pl-badge-inactive")">
+                        @(context.Published ? "Published" : "Draft")
+                    </span>
+                </TemplateColumn>
+                <TemplateColumn Title="">
+                    <button class="ds-btn ds-btn-subtle" title="Move up"
+                            disabled="@(_busyId == context.Id)"
+                            @onclick="@(() => MoveAsync(context.Id, true))">↑</button>
+                    <button class="ds-btn ds-btn-subtle" title="Move down"
+                            disabled="@(_busyId == context.Id)"
+                            @onclick="@(() => MoveAsync(context.Id, false))">↓</button>
+                    <FluentButton Appearance="ButtonAppearance.Transparent"
+                                  Disabled="@(_busyId == context.Id)"
+                                  OnClick="@(() => TogglePublishedAsync(context.Id))">
+                        @(context.Published ? "Unpublish" : "Publish")
+                    </FluentButton>
+                    <FluentButton Appearance="ButtonAppearance.Transparent"
+                                  IconStart="@(new Icons.Regular.Size16.Edit())"
+                                  OnClick="@(() => Navigation.NavigateTo($"/social/video/{context.Id}"))">
+                        Edit
+                    </FluentButton>
+                </TemplateColumn>
+            </FluentDataGrid>
+        }
+    </FluentCard>
+}
+
+<style>
+    .soc-head, .soc-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 2fr 52px 92px;
+        gap: 8px;
+        align-items: center;
+    }
+    .soc-head {
+        font-size: var(--fs-200); color: var(--fg-3); font-weight: var(--fw-semibold);
+        padding-bottom: 6px; border-bottom: 1px solid var(--stroke-1); margin-bottom: 8px;
+    }
+    .soc-row { margin-bottom: 8px; }
+</style>
+
+@code {
+    // Profiles are edited as a block and saved in one call, so the rows are a
+    // mutable local shape rather than the immutable query DTO.
+    private class ProfileRow
+    {
+        public int Id { get; set; }
+        public string Key { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Handle { get; set; } = "";
+        public string Url { get; set; } = "";
+        public bool Published { get; set; } = true;
+    }
+
+    private List<ProfileRow> _profiles = [];
+    private List<SocialVideoDto> _videos = [];
+    private bool _loading = true;
+    private bool _savingProfiles;
+    private int? _busyId;
+    private string _error = "";
+    private string _success = "";
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var content = await Mediator.Send(new GetSocialContentQuery());
+        _profiles = content.Profiles
+            .Select(p => new ProfileRow
+            {
+                Id = p.Id, Key = p.Key, Name = p.Name,
+                Handle = p.Handle, Url = p.Url, Published = p.Published,
+            })
+            .ToList();
+        _videos = content.Videos;
+        _loading = false;
+    }
+
+    private void AddProfileRow() => _profiles.Add(new ProfileRow());
+
+    private async Task SaveProfilesAsync()
+    {
+        _error = "";
+        _success = "";
+        _savingProfiles = true;
+        try
+        {
+            await Mediator.Send(new SaveSocialProfilesCommand(
+                _profiles.Select(p => new SocialProfileInput(
+                    p.Id, p.Key, p.Name, p.Handle, p.Url, p.Published)).ToList()));
+            await LoadAsync();
+            _success = "Profile links saved.";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        _savingProfiles = false;
+    }
+
+    private async Task TogglePublishedAsync(int id)
+    {
+        _error = "";
+        _busyId = id;
+        try
+        {
+            var published = await Mediator.Send(new ToggleSocialVideoPublishedCommand(id));
+            var i = _videos.FindIndex(v => v.Id == id);
+            if (i >= 0) _videos[i] = _videos[i] with { Published = published };
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        _busyId = null;
+    }
+
+    private async Task MoveAsync(int id, bool up)
+    {
+        _error = "";
+        _busyId = id;
+        try
+        {
+            await Mediator.Send(new MoveSocialVideoCommand(id, up));
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        _busyId = null;
+    }
+}

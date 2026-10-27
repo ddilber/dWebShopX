@@ -1,12 +1,14 @@
 @page "/"
 @layout MainLayout
 @rendermode InteractiveServer
+@using dWebShop.Application.Features.Social.Queries
+@inject IMediator Mediator
 
 <PageTitle>A&amp;S GIFIKS — Distribucija građevinskih sistema za BiH</PageTitle>
 <HeadContent>
     <link rel="canonical" href="https://asgifiks.ba/" />
     <meta property="og:title" content="A&amp;S GIFIKS — Distribucija građevinskih sistema za BiH" />
-    <meta property="og:description" content="Ovlašteni distributer STO, XYPEX i CORTEC sistema za BiH. Fasadni sistemi, kristalna hidroizolacija betona i antikorozivna zaštita." />
+    <meta property="og:description" content="Ovlašteni distributer STO, XYPEX, CORTEC i MANORTEQ sistema za BiH. Fasadni sistemi, kristalna hidroizolacija betona, brtvljenje spojeva i antikorozivna zaštita." />
     <meta property="og:url" content="https://asgifiks.ba/" />
     @Seo.OgImageTags(null)
     @Seo.JsonLd(new JsonObject {
@@ -15,7 +17,7 @@
         ["alternateName"] = "ASGifiks",
         ["url"] = "https://asgifiks.ba",
         ["logo"] = "https://asgifiks.ba/images/logo.png",
-        ["description"] = "Ovlašteni distributer STO, XYPEX i CORTEC sistema za Bosnu i Hercegovinu.",
+        ["description"] = "Ovlašteni distributer STO, XYPEX, CORTEC i MANORTEQ sistema za Bosnu i Hercegovinu.",
         ["foundingDate"] = "1998",
         ["address"] = new JsonObject {
             ["@type"] = "PostalAddress",
@@ -89,7 +91,7 @@
 
         <div class="asg-hero-right">
             <p class="asg-hero-lede">
-                Ovlašteni distributer <b>STO</b>, <b>XYPEX</b> i <b>CORTEC</b> za Bosnu i Hercegovinu.
+                Ovlašteni distributer <b>STO</b>, <b>XYPEX</b>, <b>CORTEC</b> i <b>MANORTEQ</b> za Bosnu i Hercegovinu.
                 Produžujemo vijek trajanja građevina, infrastrukture i industrijske imovine kroz
                 vrhunska rješenja za zaštitu fasada, betona i čelika.
                 Ne prodajemo proizvode. Isporučujemo trajna rješenja.
@@ -135,6 +137,8 @@
     <span>&middot;</span>
     <span><b>CORTEC</b> SAD</span>
     <span>&middot;</span>
+    <span><b>MANORTEQ</b> Velika Britanija</span>
+    <span>&middot;</span>
     <span>Ovlašteni distributer za <b>BiH</b></span>
     <span>&middot;</span>
     <span>Tomislavgrad — od <b>1998</b></span>
@@ -148,7 +152,7 @@
         <div class="asg-shead">
             <div class="asg-num">02 — Brendovi</div>
             <div>
-                <h2 class="asg-h2">Tri brenda. Dva kontinenta. Jedan standard kvalitete.</h2>
+                <h2 class="asg-h2">Četiri brenda. Dva kontinenta. Jedan standard kvalitete.</h2>
                 <p class="asg-lede">
                     Ne zastupamo proizvođače zbog veličine ili popularnosti. Biramo ih zbog dokazanih performansi,
                     tehničke podrške i rezultata koji traju dugo nakon završetka projekta.
@@ -203,6 +207,24 @@
                 </div>
                 <div class="tag">Zaštita od korozije — VpCI tehnologija</div>
                 <div class="desc">Svjetski priznati autoritet i inovator na području vrhunske antikorozivne zaštite. VpCI tehnologija bez teških metala — ekološki prihvatljivo.</div>
+                <div class="more">
+                    Saznaj više
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14M13 5l7 7-7 7" />
+                    </svg>
+                </div>
+            </a>
+
+            <a href="/brands/manorteq" class="asg-bcard">
+                <div class="head">
+                    <div class="name">MANORTEQ</div>
+                    <div class="origin">Velika Britanija<br/>uz Xypex</div>
+                </div>
+                <div class="asg-ph" style="height:120px;padding:0;overflow:hidden;">
+                    <img src="/images/brands/manorteq-joint.svg" alt="MANORTEQ brtvljenje radnih spojeva" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.style.display='none'" />
+                </div>
+                <div class="tag">Brtvljenje spojeva i mortovi uz Xypex</div>
+                <div class="desc">Bubreće i krute brtvene trake, brtvljenje distancera oplate te hidroizolacijski mortovi s Xypex tehnologijom — dopuna kristalnoj hidroizolaciji na radnim spojevima.</div>
                 <div class="more">
                     Saznaj više
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -283,6 +305,16 @@
             </a>
             <a href="/services" class="asg-svc-row">
                 <span class="n">06</span>
+                <span class="t">Brtvljenje radnih spojeva</span>
+                <span class="d">MANORTEQ brtvene trake, FormPlug/FormRing i mortovi s Xypex tehnologijom.</span>
+                <span class="arr">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14M13 5l7 7-7 7" />
+                    </svg>
+                </span>
+            </a>
+            <a href="/services" class="asg-svc-row">
+                <span class="n">07</span>
                 <span class="t">Tehnička dokumentacija</span>
                     <span class="d">Specifikacije, DoP-ovi, CE i EPD dokumentacija</span>
                 <span class="arr">
@@ -292,7 +324,7 @@
                 </span>
             </a>
             <a href="/services" class="asg-svc-row">
-                <span class="n">07</span>
+                <span class="n">08</span>
                 <span class="t">Stručno savjetovanje</span>
                     <span class="d">Individualni pristup uz podršku certificiranih stručnjaka.</span>
                 <span class="arr">
@@ -330,9 +362,9 @@
                 <div class="d">Stambeni, javni, industrijski</div>
             </div>
             <div class="asg-fig">
-                <div class="n">3</div>
+                <div class="n">4</div>
                 <div class="l">brenda u portfelju</div>
-                <div class="d">STO &middot; XYPEX &middot; CORTEC</div>
+                <div class="d">STO &middot; XYPEX &middot; CORTEC &middot; MANORTEQ</div>
             </div>
             <div class="asg-fig">
                 <div class="n">100%</div>
@@ -403,12 +435,141 @@
 </section>
 
 <!-- ====================================================
-     06 TESTIMONIALS
+     06 SOCIAL
+     ==================================================== -->
+<section class="asg-section">
+    <div class="asg-wrap">
+        <div class="asg-shead">
+            <div class="asg-num">06 — Društvene mreže</div>
+            <div>
+                <h2 class="asg-h2">Pratite nas s gradilišta.</h2>
+                <p class="asg-lede">
+                    Realizirani projekti, detalji ugradnje i novosti iz STO, XYPEX, CORTEC i MANORTEQ
+                    programa — objavljujemo ih prvo na društvenim mrežama.
+                </p>
+            </div>
+        </div>
+
+        @* Facade pattern: nothing from TikTok/Instagram loads until the visitor
+           clicks. Keeps the page fast and sets no third-party cookies on view.
+           A card with no EmbedUrl yet degrades to a link out to the profile. *@
+        @if (_videos.Count > 0)
+        {
+            <div class="asg-video-grid">
+                @for (var i = 0; i < _videos.Count; i++)
+                {
+                    var v = _videos[i];
+                    var idx = i;
+                    <div class="asg-video">
+                        @if (_playing == idx)
+                        {
+                            <div class="frame">
+                                <iframe src="@v.EmbedUrl" title="@v.Caption"
+                                        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen"
+                                        allowfullscreen loading="lazy"></iframe>
+                            </div>
+                        }
+                        else if (!string.IsNullOrWhiteSpace(v.EmbedUrl))
+                        {
+                            <button type="button" class="poster ph" @onclick="() => _playing = idx"
+                                    aria-label="@($"Pusti video: {v.Caption}")">
+                                @if (!string.IsNullOrWhiteSpace(v.PosterImage))
+                                {
+                                    <img class="thumb" src="@v.PosterImage" alt="" loading="lazy" />
+                                }
+                                <span class="plat">@v.Platform</span>
+                                <span class="play">
+                                    <svg width="16" height="18" viewBox="0 0 16 18" aria-hidden="true">
+                                        <path d="M1 1l14 8-14 8z" fill="#fff" />
+                                    </svg>
+                                </span>
+                                <span class="cap">@v.Caption</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <a class="poster ph" href="@v.FallbackUrl" target="_blank" rel="noopener"
+                               aria-label="@($"Otvori na {v.Platform}: {v.Caption}")">
+                                @if (!string.IsNullOrWhiteSpace(v.PosterImage))
+                                {
+                                    <img class="thumb" src="@v.PosterImage" alt="" loading="lazy" />
+                                }
+                                <span class="plat">@v.Platform</span>
+                                <span class="play">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff"
+                                         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M7 17 17 7M9 7h8v8" />
+                                    </svg>
+                                </span>
+                                <span class="cap">@v.Caption</span>
+                            </a>
+                        }
+                        <div class="vmeta">
+                            <span>@v.Duration</span>
+                            <span>@(string.IsNullOrWhiteSpace(v.EmbedUrl) ? "↗ Otvori" : "▶ Pogledaj")</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="asg-social-grid">
+            @foreach (var s in _socials)
+            {
+                <a href="@s.Url" class="asg-social" target="_blank" rel="noopener" aria-label="@s.Name">
+                    <span class="ic">
+                        @switch (s.Key)
+                        {
+                            case "tiktok":
+                                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <path d="M15.5 3c.3 2 1.6 3.5 3.5 3.8v2.6c-1.3.1-2.5-.3-3.5-1v5.3c0 3-2.1 5.3-5 5.3s-4.8-2.1-4.8-4.7c0-2.8 2.4-4.9 5.4-4.4v2.7c-.4-.2-.9-.2-1.3-.1-1.1.2-1.8 1-1.7 2.1.1 1 .9 1.7 1.9 1.7 1.1 0 1.9-.9 1.9-2.1V3h3.1z" />
+                                </svg>
+                                break;
+                            case "facebook":
+                                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <path d="M13.4 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.25-1.45 1.55-1.45h1.65V3.65c-.29-.04-1.27-.12-2.41-.12-2.39 0-4.02 1.46-4.02 4.13V9.9H7.5V13h2.66v8z" />
+                                </svg>
+                                break;
+                            case "instagram":
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                                    <rect x="3" y="3" width="18" height="18" rx="5" />
+                                    <circle cx="12" cy="12" r="4" />
+                                    <circle cx="17.2" cy="6.8" r="1.15" fill="currentColor" stroke="none" />
+                                </svg>
+                                break;
+                            default:
+                                @* A network added in Admin with a key we have no
+                                   glyph for still gets a usable card. *@
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5" />
+                                    <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5" />
+                                </svg>
+                                break;
+                        }
+                    </span>
+                    <span class="t">
+                        <span class="n">@s.Name</span>
+                        <span class="h">@s.Handle</span>
+                    </span>
+                    <span class="arr">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M7 17 17 7M9 7h8v8" />
+                        </svg>
+                    </span>
+                </a>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- ====================================================
+     07 TESTIMONIALS
      ==================================================== -->
 <section class="asg-section asg-soft">
     <div class="asg-wrap">
         <div class="asg-shead">
-            <div class="asg-num">06 — Reference</div>
+            <div class="asg-num">07 — Reference</div>
             <div>
                 <h2 class="asg-h2">Što kažu partneri koji su radili s nama.</h2>
                 <p class="asg-lede">
@@ -453,12 +614,12 @@
 </section>
 
 <!-- ====================================================
-     07 CERTIFICATIONS
+     08 CERTIFICATIONS
      ==================================================== -->
 <section class="asg-section asg-tight">
     <div class="asg-wrap">
         <div style="margin-bottom:32px; display:flex; justify-content:space-between; align-items:baseline; gap:24px; flex-wrap:wrap;">
-            <div class="asg-eyebrow"><span class="dot"></span>Certifikati i standardi</div>
+            <div class="asg-num">08 — Certifikati</div>
             <div style="font-size:14px; color:var(--asg-muted); max-width:48ch;">
                 Za proizvode iz našeg portfelja osiguravamo originalnu tehničku dokumentaciju, CE oznake, DoP izjave i ostale certifikate proizvođača.
             </div>
@@ -469,12 +630,13 @@
             <div class="asg-cert"><div class="n">STO Partner</div><div class="d">Ovlašteni distributer</div></div>
             <div class="asg-cert"><div class="n">XYPEX Auth.</div><div class="d">Ovlašteni distributer</div></div>
             <div class="asg-cert"><div class="n">CORTEC Auth.</div><div class="d">Ovlašteni distributer</div></div>
+            <div class="asg-cert"><div class="n">MANORTEQ</div><div class="d">Ovlašteni distributer</div></div>
         </div>
     </div>
 </section>
 
 <!-- ====================================================
-     08 FAQ
+     09 FAQ
      ==================================================== -->
 <section class="asg-section">
     <div class="asg-wrap">
@@ -594,7 +756,7 @@
     .asg-hero-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
     /* Brands grid */
-    .asg-bgrid { display: grid; grid-template-columns: repeat(3,1fr); gap: 32px; }
+    .asg-bgrid { display: grid; grid-template-columns: repeat(2,1fr); gap: 32px; }
     .asg-bcard { display: flex; flex-direction: column; gap: 18px; padding: 32px;
         border: 1px solid var(--asg-line); background: #fff; text-decoration: none; color: var(--asg-ink);
         transition: all .25s; }
@@ -654,8 +816,61 @@
     .asg-test .author .c { font-family: var(--asg-mono); font-size: 10px; letter-spacing: .08em;
         text-transform: uppercase; color: var(--asg-accent); text-align: right; }
 
+    /* Social — video facade */
+    /* Bottom margin carries the gap to the profile row below — it used to come
+       from the note paragraph that sat between them. */
+    .asg-video-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 40px; }
+    .asg-video { border: 1px solid var(--asg-line); background: var(--asg-paper);
+        display: flex; flex-direction: column; }
+    .asg-video .poster { position: relative; width: 100%; aspect-ratio: 9/14; margin: 0;
+        border: none; padding: 14px; display: flex; align-items: flex-end; cursor: pointer;
+        font: inherit; text-align: left; text-decoration: none; color: #eef2f7;
+        /* Opaque base first: a transparent stripe here would let the paper
+           background through and read as harsh black-on-cream bars. */
+        background-color: #16161a;
+        background-image: repeating-linear-gradient(135deg,
+            rgba(255,255,255,.05) 0 14px, rgba(255,255,255,0) 14px 28px); }
+    .asg-video .thumb { position: absolute; inset: 0; width: 100%; height: 100%;
+        object-fit: cover; display: block; }
+    /* Scrim so the label and caption stay legible over any thumbnail. */
+    .asg-video .poster::after { content: ''; position: absolute; inset: 0;
+        background: linear-gradient(180deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,0) 32%,
+            rgba(0,0,0,0) 55%, rgba(0,0,0,.6) 100%); }
+    .asg-video .plat { z-index: 1; position: absolute; top: 12px; left: 14px; font-family: var(--asg-mono);
+        font-size: 11px; letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
+    .asg-video .play { z-index: 1; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+        width: 52px; height: 52px; border: 1.5px solid rgba(255,255,255,.9); border-radius: 50%;
+        display: flex; align-items: center; justify-content: center; transition: all .15s; }
+    .asg-video .play svg { margin-left: 3px; }
+    .asg-video .poster:hover .play { background: rgba(255,255,255,.14); border-color: #fff; }
+    .asg-video .cap { position: relative; z-index: 1; font-size: 14px; line-height: 1.35; font-weight: 500; }
+    .asg-video .frame { position: relative; aspect-ratio: 9/14; background: #000; }
+    .asg-video .frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+    .asg-video .vmeta { padding: 11px 13px; display: flex; justify-content: space-between;
+        align-items: center; border-top: 1px solid var(--asg-line); font-family: var(--asg-mono);
+        font-size: 12px; letter-spacing: .04em; color: var(--asg-muted); }
+
+    /* Social */
+    .asg-social-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 0;
+        border-top: 1px solid var(--asg-line); border-bottom: 1px solid var(--asg-line); }
+    .asg-social { display: flex; align-items: center; gap: 20px; padding: 28px 24px;
+        border-right: 1px solid var(--asg-line); color: inherit; text-decoration: none;
+        transition: background .15s; }
+    .asg-social:last-child { border-right: none; }
+    .asg-social:hover { background: var(--asg-paper-soft); }
+    .asg-social .ic { flex-shrink: 0; width: 44px; height: 44px; border: 1px solid var(--asg-ink);
+        display: flex; align-items: center; justify-content: center; transition: all .15s; }
+    .asg-social .ic svg { width: 20px; height: 20px; }
+    .asg-social:hover .ic { background: var(--asg-ink); color: var(--asg-paper); }
+    .asg-social .t { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .asg-social .t .n { font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+    .asg-social .t .h { font-family: var(--asg-mono); font-size: 11px; letter-spacing: .06em;
+        color: var(--asg-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .asg-social .arr { margin-left: auto; flex-shrink: 0; color: var(--asg-muted); display: flex; }
+    .asg-social:hover .arr { color: var(--asg-accent); }
+
     /* Certs */
-    .asg-cert-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 0;
+    .asg-cert-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 0;
         border-top: 1px solid var(--asg-line); border-bottom: 1px solid var(--asg-line); }
     .asg-cert { padding: 32px 24px; border-right: 1px solid var(--asg-line); }
     .asg-cert:last-child { border-right: none; }
@@ -698,11 +913,31 @@
         .asg-cert-grid { grid-template-columns: repeat(2,1fr); }
         .asg-cert { border-right: 1px solid var(--asg-line); border-bottom: 1px solid var(--asg-line); }
         .asg-cert:nth-child(2n) { border-right: none; }
+        .asg-social-grid { grid-template-columns: 1fr; }
+        .asg-social { border-right: none; border-bottom: 1px solid var(--asg-line); }
+        .asg-social:last-child { border-bottom: none; }
+        /* Third video wraps to a second row rather than shrinking to a sliver. */
+        .asg-video-grid { grid-template-columns: repeat(2,1fr); }
     }
 </style>
 
 @code {
     private int _openFaq = 0;
+
+    // Block 06 content is managed in Admin → Društvene mreže. SocialProfileDto
+    // .Key drives the inline icon markup above; an unknown key still renders,
+    // with the generic link icon.
+    private List<SocialProfileDto> _socials = [];
+    private List<SocialVideoDto> _videos = [];
+
+    private int? _playing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var social = await Mediator.Send(new GetPublishedSocialContentQuery(MaxVideos: 3));
+        _socials = social.Profiles;
+        _videos = social.Videos;
+    }
 
     private void ToggleFaq(int i) => _openFaq = _openFaq == i ? -1 : i;
 
