@@ -38,7 +38,7 @@
 
         <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px; margin-top: 8px;">
             <FluentButton Appearance="ButtonAppearance.Primary" OnClick="RegisterAsync">
-                @if (_loading) { <FluentProgressRing Style="width:16px;height:16px;" /> } else { <span>Create Account</span> }
+                @if (_loading) { <FluentSpinner Style="width:16px;height:16px;" /> } else { <span>Create Account</span> }
             </FluentButton>
             <FluentButton OnClick="@(() => Navigation.NavigateTo("/users"))">Cancel</FluentButton>
         </FluentStack>

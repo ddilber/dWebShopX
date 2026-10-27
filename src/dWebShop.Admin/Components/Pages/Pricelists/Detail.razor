@@ -12,7 +12,7 @@
 
 @if (_loading)
 {
-    <FluentProgressRing />
+    <FluentSpinner />
 }
 else if (_notFound)
 {
@@ -102,7 +102,7 @@ else
                         </select>
                     </div>
                     <div class="co-picker-field co-picker-price">
-                        <label class="co-label">Price (€)</label>
+                        <label class="co-label">Price (KM)</label>
                         <input type="number" class="co-input" min="0" step="0.01"
                                @bind="_itemPrice" @bind:event="oninput" />
                     </div>
@@ -140,7 +140,7 @@ else
                             <div class="pl-item-row">
                                 <span class="pl-mono">@it.SkuCode</span>
                                 <span class="pl-item-name">@(string.IsNullOrWhiteSpace(it.SkuName) ? "—" : it.SkuName)</span>
-                                <span class="pl-num">€@it.Price.ToString("N2")</span>
+                                <span class="pl-num">@AdminFormat.Money(it.Price)</span>
                                 <span class="pl-num pl-muted">@(it.MinQuantity?.ToString("N2") ?? "—")</span>
                                 <button class="co-remove-btn" title="Remove item"
                                         @onclick="@(() => DeleteItemAsync(it.Id))">

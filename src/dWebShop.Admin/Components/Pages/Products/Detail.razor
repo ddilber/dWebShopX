@@ -149,6 +149,20 @@ else
                                 var img = _detail.Images[idx];
                                 <div class="media-cell" style="position:relative;">
                                     <img src="@img.Path" alt="@img.Description" />
+                                    @if (_pendingImageIdx == idx)
+                                    {
+                                        <div class="media-overlay" style="opacity:1;flex-direction:column;gap:6px;color:#fff;font-size:var(--fs-200)">
+                                            <span>Remove image?</span>
+                                            <div style="display:flex;gap:6px">
+                                                <button class="media-overlay-btn media-overlay-btn--danger" style="width:auto;padding:0 8px"
+                                                        @onclick="@(async () => await RemoveImage(idx))" @onclick:stopPropagation="true">Remove</button>
+                                                <button class="media-overlay-btn" style="width:auto;padding:0 8px"
+                                                        @onclick="@(() => _pendingImageIdx = null)" @onclick:stopPropagation="true">Keep</button>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
                                     <div class="media-overlay">
                                         <button class="media-overlay-btn" title="Move left"
                                                 disabled="@(idx == 0)"
@@ -157,7 +171,7 @@ else
                                             <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/></svg>
                                         </button>
                                         <button class="media-overlay-btn media-overlay-btn--danger" title="Remove"
-                                                @onclick="@(async () => await RemoveImage(idx))"
+                                                @onclick="@(() => _pendingImageIdx = idx)"
                                                 @onclick:stopPropagation="true">
                                             <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zm-1 7a1 1 0 112 0v3a1 1 0 11-2 0V9zm4 0a1 1 0 10-2 0v3a1 1 0 102 0V9z" clip-rule="evenodd"/></svg>
                                         </button>
@@ -168,6 +182,7 @@ else
                                             <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>
                                         </button>
                                     </div>
+                                    }
                                 </div>
                             }
                             <div class="media-cell media-add" @onclick="@(async () => await _imagePicker.Show())">
@@ -451,7 +466,17 @@ else
                                     </button>
                                     @if (_editingSkuId is not null)
                                     {
-                                        <button class="ds-btn ds-btn-subtle" style="color:var(--danger)" @onclick="DeleteSkuAsync" disabled="@_skuSaving">Delete</button>
+                                        @if (_confirmingSkuDelete)
+                                        {
+                                            <button class="ds-btn" style="color:var(--danger);border-color:var(--danger)" @onclick="DeleteSkuAsync" disabled="@_skuSaving">
+                                                @(_skuSaving ? "Deleting…" : "Confirm delete")
+                                            </button>
+                                            <button class="ds-btn ds-btn-subtle" @onclick="@(() => _confirmingSkuDelete = false)" disabled="@_skuSaving">Keep</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="ds-btn ds-btn-subtle" style="color:var(--danger)" @onclick="@(() => _confirmingSkuDelete = true)" disabled="@_skuSaving">Delete</button>
+                                        }
                                     }
                                     <button class="ds-btn ds-btn-subtle" @onclick="CloseSkuForm">Cancel</button>
                                 </div>
@@ -521,14 +546,25 @@ else
                         </select>
                     </div>
                     <div class="field">
-                        <label class="field-label">Primary category</label>
-                        <select class="ds-select" @bind="_form.PrimaryCategoryId">
-                            <option value="">— None —</option>
-                            @foreach (var c in _categories)
-                            {
-                                <option value="@c.Id">@(c.ParentName is not null ? $"{c.ParentName} → {c.Name}" : c.Name)</option>
-                            }
-                        </select>
+                        <span class="field-label">Categories</span>
+                        @if (_categories.Count == 0)
+                        {
+                            <span class="field-hint">No categories defined yet.</span>
+                        }
+                        else
+                        {
+                            <div class="pl-check-list" style="max-height:220px;overflow-y:auto">
+                                @foreach (var c in _categories)
+                                {
+                                    var catId = c.Id;
+                                    <label class="pl-check">
+                                        <input type="checkbox" checked="@_form.CategoryIds.Contains(catId)"
+                                               @onchange="@(e => ToggleCategory(catId, (bool)e.Value!))" />
+                                        <span>@(c.ParentName is not null ? $"{c.ParentName} → {c.Name}" : c.Name)</span>
+                                    </label>
+                                }
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -549,7 +585,7 @@ else
                         </div>
                         <div style="display:flex;justify-content:space-between">
                             <span>Categories</span>
-                            <span style="color:var(--fg-1)">@(_detail?.Categories.Count ?? 0)</span>
+                            <span style="color:var(--fg-1)">@_form.CategoryIds.Count</span>
                         </div>
                     </div>
                 </div>
@@ -602,6 +638,8 @@ else
     private bool _showSkuForm;
     private int? _editingSkuId;
     private bool _skuSaving;
+    private bool _confirmingSkuDelete;
+    private int? _pendingImageIdx;
     private string? _skuError;
     private SkuFormModel _skuForm = new();
 
@@ -631,7 +669,7 @@ else
                 Status = _detail.Status,
                 IsFeatured = _detail.IsFeatured,
                 BrandId = _detail.BrandId.HasValue ? _detail.BrandId.Value : 0,
-                PrimaryCategoryId = _detail.Categories.FirstOrDefault()?.Id ?? 0,
+                CategoryIds = _detail.Categories.Select(c => c.Id).ToHashSet(),
             };
 
             var skuResult = await Mediator.Send(new GetProductSkusQuery(_detail.Id));
@@ -678,6 +716,7 @@ else
             ImagePath = sku.ImagePath,
         };
         _skuError = null;
+        _confirmingSkuDelete = false;
         _showSkuForm = true;
     }
 
@@ -694,6 +733,11 @@ else
                 map[option.Id] = value.Id;
         }
         return map;
+    }
+
+    private void ToggleCategory(int id, bool selected)
+    {
+        if (selected) _form.CategoryIds.Add(id); else _form.CategoryIds.Remove(id);
     }
 
     private void CloseSkuForm()
@@ -725,8 +769,9 @@ else
             }
             else
             {
-                // Always send the option list so clearing an option to "None" is saved too.
-                await Mediator.Send(new UpdateSkuCommand(_editingSkuId.Value, _skuForm.Sku, _skuForm.ExtRef, _skuForm.Name, _skuForm.Gtin, _skuForm.Price, _skuForm.CompareAtPrice, _skuForm.CostPrice, _skuForm.Tax, _skuForm.StockQuantity, _skuForm.LowStockThreshold, _skuForm.ImagePath, optVals));
+                // Always send the option list so clearing an option to "None" is saved too,
+                // and send "" for a removed image (null would mean "keep the current one").
+                await Mediator.Send(new UpdateSkuCommand(_editingSkuId.Value, _skuForm.Sku, _skuForm.ExtRef, _skuForm.Name, _skuForm.Gtin, _skuForm.Price, _skuForm.CompareAtPrice, _skuForm.CostPrice, _skuForm.Tax, _skuForm.StockQuantity, _skuForm.LowStockThreshold, _skuForm.ImagePath ?? "", optVals));
             }
             _showSkuForm = false;
             await ReloadSkusAsync();
@@ -758,6 +803,7 @@ else
         finally
         {
             _skuSaving = false;
+            _confirmingSkuDelete = false;
         }
     }
 
@@ -777,7 +823,8 @@ else
         try
         {
             var brandId = _form.BrandId > 0 ? (int?)_form.BrandId : null;
-            var catIds = _form.PrimaryCategoryId > 0 ? new List<int> { _form.PrimaryCategoryId } : null;
+            // Always a list (possibly empty) so unticking every category clears them.
+            var catIds = _form.CategoryIds.ToList();
 
             if (_isNew)
             {
@@ -887,6 +934,7 @@ else
 
     private async Task RemoveImage(int index)
     {
+        _pendingImageIdx = null;
         if (_detail is null) return;
         var imageId = _detail.Images[index].Id;
         _detail.Images.RemoveAt(index);
@@ -928,6 +976,6 @@ else
         public ProductStatus Status { get; set; } = ProductStatus.Draft;
         public bool IsFeatured { get; set; }
         public int BrandId { get; set; }
-        public int PrimaryCategoryId { get; set; }
+        public HashSet<int> CategoryIds { get; set; } = [];
     }
 }

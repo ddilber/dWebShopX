@@ -89,7 +89,9 @@ public class UpdateSkuCommandHandler(IAppDbContext db) : IRequestHandler<UpdateS
         sku.Tax = request.Tax;
         sku.StockQuantity = request.StockQuantity;
         sku.LowStockThreshold = request.LowStockThreshold;
-        if (request.ImagePath is not null) sku.ImagePath = request.ImagePath;
+        // null keeps the current image; an empty string clears it.
+        if (request.ImagePath is not null)
+            sku.ImagePath = request.ImagePath.Length == 0 ? null : request.ImagePath;
 
         if (request.OptionValues is not null)
         {
