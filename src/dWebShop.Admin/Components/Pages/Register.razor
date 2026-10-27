@@ -9,10 +9,15 @@
 
 <PageTitle>Register Admin — dWebShop Admin</PageTitle>
 
-<FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom: 16px;">
-    <FluentLabel Style="font-size: 22px; font-weight: 600;">Register Admin User</FluentLabel>
-</FluentStack>
-<FluentDivider Style="margin-bottom: 24px;" />
+<div class="admin-page-head">
+    <div>
+        <nav class="admin-breadcrumb">
+            <a href="/users">System</a> › <a href="/users">Users</a> › New admin
+        </nav>
+        <h1 class="admin-page-title">Register admin user</h1>
+        <p class="admin-page-sub">Creates an approved account with the Admin role.</p>
+    </div>
+</div>
 
 <div style="max-width: 480px;">
     <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px;">
@@ -38,7 +43,7 @@
 
         <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px; margin-top: 8px;">
             <FluentButton Appearance="ButtonAppearance.Primary" OnClick="RegisterAsync">
-                @if (_loading) { <FluentProgressRing Style="width:16px;height:16px;" /> } else { <span>Create Account</span> }
+                @if (_loading) { <FluentSpinner Style="width:16px;height:16px;" /> } else { <span>Create Account</span> }
             </FluentButton>
             <FluentButton OnClick="@(() => Navigation.NavigateTo("/users"))">Cancel</FluentButton>
         </FluentStack>

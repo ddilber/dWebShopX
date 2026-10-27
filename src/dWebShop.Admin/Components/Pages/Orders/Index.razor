@@ -16,13 +16,14 @@
         @if (_result is not null)
         {
             <p class="admin-page-sub">
-                @_result.FilteredCount orders
+                @_result.FilteredCount order@(_result.FilteredCount == 1 ? "" : "s")
                 @if (_pendingCount > 0) { <text> · @_pendingCount pending fulfillment</text> }
             </p>
         }
     </div>
     <div class="admin-page-actions">
-        <FluentButton Appearance="ButtonAppearance.Transparent" IconStart="@(new Icons.Regular.Size16.ArrowDownload())">Export</FluentButton>
+        @* Plain link: the CSV comes from the /orders/export endpoint as a file download. *@
+        <a class="ds-btn ds-btn-subtle" href="@ExportUrl" download>Export CSV</a>
         <FluentButton Appearance="ButtonAppearance.Primary" IconStart="@(new Icons.Regular.Size16.Add())" OnClick="@(() => Navigation.NavigateTo("/orders/new"))">Create order</FluentButton>
     </div>
 </div>
@@ -48,7 +49,7 @@
     <div class="admin-list-controls">
         <div class="admin-list-search">
             <FluentIcon Value="@(new Icons.Regular.Size16.Search())" Style="color: var(--colorNeutralForeground3); flex-shrink:0;" />
-            <input type="search"
+            <input aria-label="Search orders" type="search"
                    value="@_search"
                    @oninput="OnSearchInput"
                    @onkeyup="OnSearchKeyUp"
@@ -56,9 +57,25 @@
                    class="admin-search-input" />
         </div>
         <div class="admin-list-controls-right">
-            <FluentButton Appearance="ButtonAppearance.Transparent" IconStart="@(new Icons.Regular.Size16.Calendar())">This week</FluentButton>
-            <FluentButton Appearance="ButtonAppearance.Transparent" IconStart="@(new Icons.Regular.Size16.Filter())">Channel</FluentButton>
-            <FluentButton Appearance="ButtonAppearance.Transparent" IconStart="@(new Icons.Regular.Size16.Filter())">Payment</FluentButton>
+            <select class="admin-search-input" aria-label="Date range" value="@_range" @onchange="OnRangeChanged">
+                <option value="">Any time</option>
+                <option value="today">Today</option>
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+            </select>
+            <select class="admin-search-input" aria-label="Channel" value="@_channel" @onchange="OnChannelChanged">
+                <option value="">All channels</option>
+                <option value="Web">Web</option>
+                <option value="Mobile">Mobile</option>
+                <option value="Pos">POS</option>
+                <option value="Phone">Phone</option>
+                <option value="Email">Email</option>
+            </select>
+            <select class="admin-search-input" aria-label="Payment status" value="@_payment" @onchange="OnPaymentChanged">
+                <option value="">All payments</option>
+                <option value="Paid">Paid</option>
+                <option value="Pending">Pending</option>
+            </select>
         </div>
     </div>
 
@@ -111,7 +128,7 @@
                 <span class="admin-pager-current">@_page</span>
                 <FluentButton Appearance="ButtonAppearance.Transparent"
                               IconStart="@(new Icons.Regular.Size16.ChevronRight())"
-                              Disabled="@(_result.Items.Count < PageSize)"
+                              Disabled="@(_page * PageSize >= _result.FilteredCount)"
                               OnClick="NextPage" />
             </div>
         </div>
@@ -137,6 +154,40 @@
     private string _search = "";
     private int _page = 1;
     private const int PageSize = 20;
+    private string _range = "";
+    private string _channel = "";
+    private string _payment = "";
+
+    private OrderStatus? StatusFilter => _tabs.FirstOrDefault(t => t.Id == _activeTab)?.StatusFilter;
+
+    private DateTime? CreatedFrom => _range switch
+    {
+        "today" => DateTime.Today,
+        "7"     => DateTime.Today.AddDays(-6),
+        "30"    => DateTime.Today.AddDays(-29),
+        _       => null,
+    };
+
+    private string ExportUrl
+    {
+        get
+        {
+            var q = new Dictionary<string, string?>
+            {
+                ["status"] = StatusFilter?.ToString(),
+                ["search"] = string.IsNullOrWhiteSpace(_search) ? null : _search.Trim(),
+                ["channel"] = string.IsNullOrEmpty(_channel) ? null : _channel,
+                ["payment"] = string.IsNullOrEmpty(_payment) ? null : _payment,
+                ["from"] = CreatedFrom?.ToString("yyyy-MM-dd"),
+            };
+            return Navigation.GetUriWithQueryParameters("/orders/export",
+                q.Where(kv => kv.Value is not null).ToDictionary(kv => kv.Key, kv => (object?)kv.Value));
+        }
+    }
+
+    private async Task OnRangeChanged(ChangeEventArgs e) { _range = e.Value?.ToString() ?? ""; _page = 1; await LoadOrders(); }
+    private async Task OnChannelChanged(ChangeEventArgs e) { _channel = e.Value?.ToString() ?? ""; _page = 1; await LoadOrders(); }
+    private async Task OnPaymentChanged(ChangeEventArgs e) { _payment = e.Value?.ToString() ?? ""; _page = 1; await LoadOrders(); }
 
     private int _pendingCount =>
         _result?.StatusCounts.GetValueOrDefault(OrderStatus.Pending, 0) ?? 0;
@@ -182,8 +233,11 @@
         _loading = true;
         StateHasChanged();
 
-        var statusFilter = _tabs.FirstOrDefault(t => t.Id == _activeTab)?.StatusFilter;
-        _result = await Mediator.Send(new GetAllOrdersQuery(_page, PageSize, _search.Trim(), statusFilter));
+        _result = await Mediator.Send(new GetAllOrdersQuery(
+            _page, PageSize, _search.Trim(), StatusFilter,
+            string.IsNullOrEmpty(_channel) ? null : _channel,
+            string.IsNullOrEmpty(_payment) ? null : _payment,
+            CreatedFrom));
         _loading = false;
     }
 

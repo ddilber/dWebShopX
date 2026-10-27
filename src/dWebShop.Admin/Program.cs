@@ -1,8 +1,14 @@
+using System.Globalization;
+using System.Text;
 using dWebShop.Application;
+using dWebShop.Application.Features.Orders.Queries;
+using dWebShop.Domain.Entities.Orders;
 using dWebShop.Domain.Entities.Users;
 using dWebShop.Infrastructure;
 using dWebShop.Infrastructure.Persistence;
 using dWebShop.Admin.Components;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Serilog;
@@ -104,5 +110,39 @@ app.MapPost("/logout", async (SignInManager<ApplicationUser> signInManager) =>
     await signInManager.SignOutAsync();
     return Results.Redirect("/login");
 }).RequireAuthorization();
+
+// CSV export for the Orders list — takes the same filters as the page.
+// Semicolon-separated with hr-HR numbers and a UTF-8 BOM so Excel in the local
+// locale opens it straight into columns.
+app.MapGet("/orders/export", async (
+    IMediator mediator,
+    string? status, string? search, string? channel, string? payment, DateTime? from) =>
+{
+    OrderStatus? statusFilter = Enum.TryParse<OrderStatus>(status, true, out var s) ? s : null;
+    var result = await mediator.Send(new GetAllOrdersQuery(
+        1, int.MaxValue, search?.Trim(), statusFilter, channel, payment, from));
+
+    var hr = CultureInfo.GetCultureInfo("hr-HR");
+    static string Cell(string? v) => "\"" + (v ?? "").Replace("\"", "\"\"") + "\"";
+
+    var sb = new StringBuilder();
+    sb.AppendLine("Order;Date;Customer;Email;Items;Total (KM);Payment;Status;Channel");
+    foreach (var o in result.Items)
+    {
+        sb.AppendLine(string.Join(';',
+            o.Id.ToString(),
+            o.Created.ToString("yyyy-MM-dd HH:mm"),
+            Cell(o.PartnerName),
+            Cell(o.PartnerEmail),
+            o.ItemCount.ToString(),
+            o.Total.ToString("0.00", hr),
+            Cell(o.PaymentStatus),
+            o.Status.ToString(),
+            Cell(o.Channel)));
+    }
+
+    var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+    return Results.File(bytes, "text/csv", $"orders-{DateTime.Now:yyyyMMdd-HHmm}.csv");
+}).RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" });
 
 app.Run();

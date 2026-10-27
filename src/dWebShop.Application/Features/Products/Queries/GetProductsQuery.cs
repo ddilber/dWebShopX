@@ -19,7 +19,12 @@ public record GetProductsQuery(
     string? Sort = null,
     int[]? BrandIds = null,
     int[]? CategoryIds = null,
-    bool IncludePrice = false) : IRequest<PagedResult<ProductListItemDto>>;
+    bool IncludePrice = false,
+    ProductStockFilter Stock = ProductStockFilter.Any) : IRequest<PagedResult<ProductListItemDto>>;
+
+// Low: at least one SKU in stock but at/below its low-stock threshold.
+// Out: has SKUs and none of them is in stock.
+public enum ProductStockFilter { Any, Low, Out }
 
 public class GetProductsQueryHandler(IAppDbContextFactory dbFactory) : IRequestHandler<GetProductsQuery, PagedResult<ProductListItemDto>>
 {
@@ -57,10 +62,30 @@ public class GetProductsQueryHandler(IAppDbContextFactory dbFactory) : IRequestH
             query = query.Where(p => p.Status == request.Status);
         }
 
+        if (request.Stock == ProductStockFilter.Low)
+            query = query.Where(p => p.ProductSkus!.Any(s => s.StockQuantity > 0 && s.StockQuantity <= s.LowStockThreshold));
+        else if (request.Stock == ProductStockFilter.Out)
+            query = query.Where(p => p.ProductSkus!.Any() && p.ProductSkus!.All(s => s.StockQuantity <= 0));
+
         var total = await query.CountAsync(ct);
 
-        var items = await query
-            .OrderBy(p => p.Name)
+        // Sort is "<Property>:asc|desc", as produced by the admin data grid.
+        var sortParts = (request.Sort ?? "").Split(':');
+        var desc = sortParts.Length > 1 && sortParts[1] == "desc";
+        IOrderedQueryable<Product> ordered = sortParts[0] switch
+        {
+            "BrandName" => desc
+                ? query.OrderByDescending(p => p.Brand != null ? p.Brand.Name : null)
+                : query.OrderBy(p => p.Brand != null ? p.Brand.Name : null),
+            "MinPrice" => desc
+                ? query.OrderByDescending(p => p.ProductSkus!.Min(s => (decimal?)s.Price))
+                : query.OrderBy(p => p.ProductSkus!.Min(s => (decimal?)s.Price)),
+            "Name" when desc => query.OrderByDescending(p => p.Name),
+            _ => query.OrderBy(p => p.Name),
+        };
+
+        var items = await ordered
+            .ThenBy(p => p.Id)
             .Skip(request.StartIndex)
             .Take(request.Count)
             .Select(p => new ProductListItemDto(

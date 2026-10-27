@@ -7,10 +7,31 @@ var config = new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build();
 
-var srcConn = config.GetConnectionString("SourceConnection")
-    ?? throw new InvalidOperationException("SourceConnection is required in appsettings.json");
 var tgtConn = config.GetConnectionString("TargetConnection")
     ?? throw new InvalidOperationException("TargetConnection is required in appsettings.json");
+
+// Repair mode: dotnet run -- --options-from-dump <old-dump.sql> [--apply]
+// Restores SKU option values the original migration skipped (see OptionsRepair).
+var dumpArg = Array.IndexOf(args, "--options-from-dump");
+if (dumpArg >= 0)
+{
+    if (dumpArg + 1 >= args.Length) { Console.Error.WriteLine("--options-from-dump needs the path to the old SQL dump."); return 1; }
+    Console.WriteLine("=== dWebShopX SKU option repair ===");
+    Console.WriteLine($"Target: {Mask(tgtConn)}");
+    try
+    {
+        await new OptionsRepair(args[dumpArg + 1], tgtConn, apply: args.Contains("--apply")).RunAsync();
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Repair failed: {ex.Message}");
+        return 1;
+    }
+}
+
+var srcConn = config.GetConnectionString("SourceConnection")
+    ?? throw new InvalidOperationException("SourceConnection is required in appsettings.json");
 
 var srcImagesPath = config["Migration:SourceImagesPath"];
 var srcDocsPath   = config["Migration:SourceDocsPath"];

@@ -244,8 +244,10 @@ public class MigrationRunner(
             optionMap[so.Id] = opt.Id;
         }
 
+        // The old DB leaves ProductOptionValues.ProductId NULL — take it from the option.
         var srcOptionValues = (await src.QueryAsync<SrcProductOptionValue>(
-            "SELECT Id, ProductId, ProductOptionId, Name FROM ProductOptionValues")).ToList();
+            @"SELECT v.Id, o.ProductId, v.ProductOptionId, v.Name
+              FROM ProductOptionValues v JOIN ProductOptions o ON o.Id = v.ProductOptionId")).ToList();
         var optValMap = new Dictionary<int, int>();
 
         foreach (var sv in srcOptionValues)
@@ -264,8 +266,13 @@ public class MigrationRunner(
             optValMap[sv.Id] = val.Id;
         }
 
+        // The old DB leaves SkuOptionValues.ProductId NULL and stores the option in
+        // ProductOptionId (ProductOptionsId is NULL) — take the product from the SKU.
         var srcSkuOptVals = (await src.QueryAsync<SrcSkuOptionValue>(
-            "SELECT Id, ProductId, ProductSkuId, ProductOptionsId, ProductOptionValueId FROM SkuOptionValues")).ToList();
+            @"SELECT sov.Id, s.ProductId, sov.ProductSkuId,
+                     COALESCE(sov.ProductOptionsId, sov.ProductOptionId) AS ProductOptionsId, sov.ProductOptionValueId
+              FROM SkuOptionValues sov JOIN ProductsSkus s ON s.Id = sov.ProductSkuId
+              WHERE sov.ProductOptionValueId IS NOT NULL")).ToList();
 
         foreach (var sv in srcSkuOptVals)
         {

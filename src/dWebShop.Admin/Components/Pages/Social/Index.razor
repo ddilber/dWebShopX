@@ -39,7 +39,7 @@
 
 @if (_loading)
 {
-    <FluentProgressRing />
+    <FluentSpinner />
 }
 else
 {
@@ -64,16 +64,16 @@ else
             {
                 var row = p;
                 <div class="soc-row">
-                    <input class="co-input" value="@row.Key"
+                    <input aria-label="Key" class="co-input" value="@row.Key"
                            @oninput="e => row.Key = e.Value?.ToString() ?? string.Empty" placeholder="instagram" />
-                    <input class="co-input" value="@row.Name"
+                    <input aria-label="Name" class="co-input" value="@row.Name"
                            @oninput="e => row.Name = e.Value?.ToString() ?? string.Empty" placeholder="Instagram" />
-                    <input class="co-input" value="@row.Handle"
+                    <input aria-label="Handle" class="co-input" value="@row.Handle"
                            @oninput="e => row.Handle = e.Value?.ToString() ?? string.Empty" placeholder="@("@asgifiks")" />
-                    <input class="co-input" value="@row.Url"
+                    <input aria-label="URL" class="co-input" value="@row.Url"
                            @oninput="e => row.Url = e.Value?.ToString() ?? string.Empty" placeholder="https://…" />
                     <label class="pl-check" style="margin:0">
-                        <input type="checkbox" checked="@row.Published"
+                        <input type="checkbox" aria-label="Live" checked="@row.Published"
                                @onchange="e => row.Published = (bool)e.Value!" />
                     </label>
                     <button class="ds-btn ds-btn-subtle" style="color:var(--danger)"

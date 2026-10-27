@@ -12,7 +12,7 @@
 
 @if (_loading)
 {
-    <FluentProgressRing />
+    <FluentSpinner />
 }
 else if (_notFound)
 {
@@ -73,7 +73,7 @@ else
                                   placeholder="Optional — what this pricelist is for."></textarea>
                     </div>
                     <div class="pl-field">
-                        <label class="co-label">Status</label>
+                        <span class="co-label">Status</span>
                         <label class="pl-toggle">
                             <input type="checkbox" @bind="_isActive" />
                             <span>Active</span>
@@ -88,8 +88,8 @@ else
                 @* Add-item picker *@
                 <div class="co-picker-row">
                     <div class="co-picker-field" style="flex: 2 1 240px;">
-                        <label class="co-label">SKU</label>
-                        <select class="co-select" @onchange="OnSkuChanged" disabled="@(_skus is null)">
+                        <label for="pl-sku" class="co-label">SKU</label>
+                        <select id="pl-sku" class="co-select" @onchange="OnSkuChanged" disabled="@(_skus is null)">
                             <option value="">— select a SKU —</option>
                             @if (_skus is not null)
                             {
@@ -102,13 +102,13 @@ else
                         </select>
                     </div>
                     <div class="co-picker-field co-picker-price">
-                        <label class="co-label">Price (€)</label>
-                        <input type="number" class="co-input" min="0" step="0.01"
+                        <label for="pl-price-km" class="co-label">Price (KM)</label>
+                        <input id="pl-price-km" type="number" class="co-input" min="0" step="0.01"
                                @bind="_itemPrice" @bind:event="oninput" />
                     </div>
                     <div class="co-picker-field co-picker-price">
-                        <label class="co-label">Min qty</label>
-                        <input type="number" class="co-input" min="0" step="0.01" placeholder="—"
+                        <label for="pl-min-qty" class="co-label">Min qty</label>
+                        <input id="pl-min-qty" type="number" class="co-input" min="0" step="0.01" placeholder="—"
                                @bind="_itemMinQty" @bind:event="oninput" />
                     </div>
                     <FluentButton Appearance="ButtonAppearance.Primary"
@@ -140,7 +140,7 @@ else
                             <div class="pl-item-row">
                                 <span class="pl-mono">@it.SkuCode</span>
                                 <span class="pl-item-name">@(string.IsNullOrWhiteSpace(it.SkuName) ? "—" : it.SkuName)</span>
-                                <span class="pl-num">€@it.Price.ToString("N2")</span>
+                                <span class="pl-num">@AdminFormat.Money(it.Price)</span>
                                 <span class="pl-num pl-muted">@(it.MinQuantity?.ToString("N2") ?? "—")</span>
                                 <button class="co-remove-btn" title="Remove item"
                                         @onclick="@(() => DeleteItemAsync(it.Id))">

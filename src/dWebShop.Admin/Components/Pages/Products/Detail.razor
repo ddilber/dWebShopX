@@ -13,6 +13,7 @@
 @using dWebShop.Admin.Components.Shared
 @inject IMediator Mediator
 @inject NavigationManager Navigation
+@inject IConfiguration Configuration
 
 <PageTitle>@(_isNew ? "New product" : _form.Name) — dWebShop Admin</PageTitle>
 
@@ -26,31 +27,34 @@
 }
 else
 {
-    <div class="page-head">
+    <div class="admin-page-head">
         <div style="display:flex;align-items:center;gap:var(--sp-16)">
             @if (PrimaryImage is not null)
             {
-                <img src="@PrimaryImage" alt="@_form.Name"
-                     style="width:64px;height:64px;object-fit:cover;border-radius:var(--r-md);border:1px solid var(--stroke-1);flex-shrink:0;" />
+                <img src="@PrimaryImage" alt=""
+                     style="width:56px;height:56px;object-fit:cover;border-radius:var(--r-md);border:1px solid var(--stroke-1);flex-shrink:0;" />
             }
             <div>
-            <div class="fui-breadcrumb">
-                <a href="/products" style="color:var(--fg-3);text-decoration:none">Products</a>
-                <span class="fui-breadcrumb-sep">/</span>
-                <span>@(_isNew ? "New product" : _form.Name)</span>
-            </div>
-            <h1 class="page-title">@(_isNew ? "New product" : _form.Name)</h1>
-            @if (!_isNew)
-            {
-                <p class="page-sub">SKU @_form.Sku</p>
-            }
+                <nav class="admin-breadcrumb">
+                    <a href="/products">Catalogue</a> › <a href="/products">Products</a> › @(_isNew ? "New product" : _form.Name)
+                </nav>
+                <h1 class="admin-page-title">@(_isNew ? "New product" : _form.Name)</h1>
+                @if (!_isNew && !string.IsNullOrWhiteSpace(_form.Sku))
+                {
+                    <p class="admin-page-sub">SKU @_form.Sku</p>
+                }
             </div>
         </div>
-        <div class="page-actions">
-            <button class="ds-btn ds-btn-subtle" @onclick="@(() => Navigation.NavigateTo("/products"))">Cancel</button>
-            <button class="ds-btn" style="background:var(--accent-rest);color:white;border-color:var(--accent-rest)" @onclick="SaveAsync" disabled="@_saving">
-                @if (_saving) { <span>Saving…</span> } else { <span>Save</span> }
-            </button>
+        <div class="admin-page-actions">
+            <FluentButton Appearance="ButtonAppearance.Transparent"
+                          IconStart="@(new Icons.Regular.Size16.ArrowLeft())"
+                          OnClick="@(() => Navigation.NavigateTo("/products"))">Back</FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Primary"
+                          IconStart="@(new Icons.Regular.Size16.Checkmark())"
+                          Disabled="@_saving"
+                          OnClick="SaveAsync">
+                @if (_saving) { <span>Saving…</span> } else { <span>@(_isNew ? "Create product" : "Save changes")</span> }
+            </FluentButton>
         </div>
     </div>
 
@@ -90,29 +94,30 @@ else
                     </div>
                     <div class="form-grid">
                         <div class="field span-2">
-                            <label class="field-label">Product name *</label>
-                            <input class="ds-input" placeholder="e.g. Premium Wireless Headphones" @bind="_form.Name" />
+                            <label for="prod-product-name" class="field-label">Product name *</label>
+                            <input id="prod-product-name" class="ds-input" placeholder="e.g. Premium Wireless Headphones" @bind="_form.Name" />
                         </div>
 @*                         <div class="field">
-                            <label class="field-label">SKU</label>
-                            <input class="ds-input" placeholder="e.g. PRD-001" @bind="_form.Sku" />
+                            <label for="prod-sku" class="field-label">SKU</label>
+                            <input id="prod-sku" class="ds-input" placeholder="e.g. PRD-001" @bind="_form.Sku" />
                         </div>
                         <div class="field">
-                            <label class="field-label">External reference</label>
-                            <input class="ds-input" placeholder="e.g. ERP-12345" @bind="_form.ExtRef" />
+                            <label for="prod-external-reference" class="field-label">External reference</label>
+                            <input id="prod-external-reference" class="ds-input" placeholder="e.g. ERP-12345" @bind="_form.ExtRef" />
                         </div>
  *@                        <div class="field span-2">
-                            <label class="field-label">URL slug *</label>
-                            <input class="ds-input" placeholder="e.g. premium-wireless-headphones" @bind="_form.Slug" />
+                            <label for="prod-url-slug" class="field-label">URL slug *</label>
+                            <input id="prod-url-slug" class="ds-input" placeholder="e.g. premium-wireless-headphones" @bind="_form.Slug" />
                             <span class="field-hint">Used in product URLs. Lowercase letters, numbers and hyphens only.</span>
                         </div>
                         <div class="field span-2">
-                            <label class="field-label">Short description</label>
-                            <textarea class="ds-textarea" rows="3" placeholder="Brief product summary shown in listings…" @bind="_form.Description"></textarea>
+                            <label for="prod-short-description" class="field-label">Short description</label>
+                            <textarea id="prod-short-description" class="ds-textarea" rows="3" placeholder="Brief product summary shown in listings…" @bind="_form.Description"></textarea>
                         </div>
                         <div class="field span-2">
-                            <label class="field-label">Full description</label>
-                            <RichTextEditor @ref="_detailEditor" Html="@_form.DetailDescription" />
+                            <span class="field-label">Full description</span>
+                            @* Keyed by product so the Quill editor remounts with the new HTML when the slug changes. *@
+                            <RichTextEditor @key="_loadedSlug" @ref="_detailEditor" Html="@_form.DetailDescription" />
                         </div>
                     </div>
                 </div>
@@ -148,6 +153,20 @@ else
                                 var img = _detail.Images[idx];
                                 <div class="media-cell" style="position:relative;">
                                     <img src="@img.Path" alt="@img.Description" />
+                                    @if (_pendingImageIdx == idx)
+                                    {
+                                        <div class="media-overlay" style="opacity:1;flex-direction:column;gap:6px;color:#fff;font-size:var(--fs-200)">
+                                            <span>Remove image?</span>
+                                            <div style="display:flex;gap:6px">
+                                                <button class="media-overlay-btn media-overlay-btn--danger" style="width:auto;padding:0 8px"
+                                                        @onclick="@(async () => await RemoveImage(idx))" @onclick:stopPropagation="true">Remove</button>
+                                                <button class="media-overlay-btn" style="width:auto;padding:0 8px"
+                                                        @onclick="@(() => _pendingImageIdx = null)" @onclick:stopPropagation="true">Keep</button>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
                                     <div class="media-overlay">
                                         <button class="media-overlay-btn" title="Move left"
                                                 disabled="@(idx == 0)"
@@ -156,7 +175,7 @@ else
                                             <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/></svg>
                                         </button>
                                         <button class="media-overlay-btn media-overlay-btn--danger" title="Remove"
-                                                @onclick="@(async () => await RemoveImage(idx))"
+                                                @onclick="@(() => _pendingImageIdx = idx)"
                                                 @onclick:stopPropagation="true">
                                             <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zm-1 7a1 1 0 112 0v3a1 1 0 11-2 0V9zm4 0a1 1 0 10-2 0v3a1 1 0 102 0V9z" clip-rule="evenodd"/></svg>
                                         </button>
@@ -167,9 +186,10 @@ else
                                             <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>
                                         </button>
                                     </div>
+                                    }
                                 </div>
                             }
-                            <div class="media-cell media-add">
+                            <div class="media-cell media-add" @onclick="@(async () => await _imagePicker.Show())">
                                 <svg viewBox="0 0 20 20" fill="currentColor" width="24" height="24">
                                     <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"/>
                                 </svg>
@@ -185,7 +205,7 @@ else
                                 <path d="M4 32l10-10 8 8 6-6 16 16"/>
                             </svg>
                             <p style="margin:0;font-weight:var(--fw-semibold)">No images yet</p>
-                            <p style="margin:8px 0 0;font-size:var(--fs-200)">Drag and drop images here, or click Upload image</p>
+                            <p style="margin:8px 0 0;font-size:var(--fs-200)">Click <strong>Pick image</strong> to add one</p>
                         </div>
                     }
                 </div>
@@ -196,15 +216,15 @@ else
                 <!-- Pricing & Inventory -->
                 <div class="ds-card">
                     <div class="card-head">
-                        <div class="card-title">Pricing</div>
+                        <div class="card-title">Pricing &amp; stock</div>
                     </div>
                     @if (_isNew)
                     {
-                        <div style="color:var(--fg-3);font-size:var(--fs-300)">Save the product first to manage pricing.</div>
+                        <div style="color:var(--fg-3);font-size:var(--fs-300)">Save the product first to manage pricing and stock.</div>
                     }
                     else if (_skus.Count == 0)
                     {
-                        <div style="color:var(--fg-3);font-size:var(--fs-300)">No SKUs yet. Add a SKU on the Variants tab to define pricing.</div>
+                        <div style="color:var(--fg-3);font-size:var(--fs-300)">No SKUs yet. Add a SKU on the Variants tab to define pricing and stock.</div>
                     }
                     else if (_skus.Count == 1)
                     {
@@ -217,73 +237,46 @@ else
                         @if (_skuPriceSaved)
                         {
                             <div style="background:var(--success-bg,#f0fdf4);color:var(--success,#16a34a);border:1px solid var(--success,#16a34a);border-radius:var(--r-md);padding:var(--sp-8) var(--sp-12);margin-bottom:var(--sp-12);font-size:var(--fs-300)">
-                                Prices updated.
+                                Pricing and stock updated.
                             </div>
                         }
                         <div class="form-grid cols-3">
                             <div class="field">
-                                <label class="field-label">Price *</label>
-                                <input class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_singleSkuPrice" />
+                                <label for="prod-price" class="field-label">Price *</label>
+                                <input id="prod-price" class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_singleSkuPrice" />
                             </div>
                             <div class="field">
-                                <label class="field-label">Compare-at price</label>
-                                <input class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_singleSkuCompareAtPrice" />
+                                <label for="prod-compare-at-price" class="field-label">Compare-at price</label>
+                                <input id="prod-compare-at-price" class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_singleSkuCompareAtPrice" />
                                 <span class="field-hint">Shown as strikethrough</span>
                             </div>
                             <div class="field">
-                                <label class="field-label">Cost per item</label>
-                                <input class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_singleSkuCostPrice" />
+                                <label for="prod-cost-per-item" class="field-label">Cost per item</label>
+                                <input id="prod-cost-per-item" class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_singleSkuCostPrice" />
                                 <span class="field-hint">Not shown to customers</span>
+                            </div>
+                            <div class="field">
+                                <label for="prod-stock-quantity" class="field-label">Stock quantity</label>
+                                <input id="prod-stock-quantity" class="ds-input" type="number" min="0" placeholder="0" @bind="_singleSkuStock" />
+                            </div>
+                            <div class="field">
+                                <label for="prod-low-stock-threshold" class="field-label">Low stock threshold</label>
+                                <input id="prod-low-stock-threshold" class="ds-input" type="number" min="0" placeholder="5" @bind="_singleSkuLowStock" />
+                                <span class="field-hint">Listed under <strong>Low stock</strong> at or below this</span>
                             </div>
                         </div>
                         <div style="margin-top:var(--sp-16)">
                             <button class="ds-btn" style="background:var(--accent-rest);color:white;border-color:var(--accent-rest)" @onclick="SaveSingleSkuPriceAsync" disabled="@_skuPriceSaving">
-                                @(_skuPriceSaving ? "Saving…" : "Update prices")
+                                @(_skuPriceSaving ? "Saving…" : "Update pricing & stock")
                             </button>
                         </div>
                     }
                     else
                     {
                         <div style="color:var(--fg-3);font-size:var(--fs-300)">
-                            This product has multiple variants. Please set prices individually on the <strong>Variants</strong> tab.
+                            This product has multiple variants. Set prices and stock individually on the <strong>Variants</strong> tab.
                         </div>
                     }
-                </div>
-                <div class="ds-card">
-                    <div class="card-head">
-                        <div class="card-title">Inventory</div>
-                    </div>
-                    <div class="form-grid">
-                        <div class="field">
-                            <label class="field-label">Stock quantity</label>
-                            <input class="ds-input" type="number" min="0" placeholder="0" @bind="_form.Stock" />
-                        </div>
-                        <div class="field">
-                            <label class="field-label">Low stock threshold</label>
-                            <input class="ds-input" type="number" min="0" placeholder="5" @bind="_form.LowStockThreshold" />
-                        </div>
-                    </div>
-                    <div class="card-divider"></div>
-                    <div class="ds-toggle-row">
-                        <div class="ds-toggle-text">
-                            <div class="ds-toggle-label">Track stock</div>
-                            <div class="ds-toggle-sub">Automatically update availability based on stock</div>
-                        </div>
-                        <label class="ds-toggle">
-                            <input type="checkbox" @bind="_form.TrackStock" />
-                            <span class="ds-toggle-track"></span>
-                        </label>
-                    </div>
-                    <div class="ds-toggle-row">
-                        <div class="ds-toggle-text">
-                            <div class="ds-toggle-label">Allow backorders</div>
-                            <div class="ds-toggle-sub">Let customers order when out of stock</div>
-                        </div>
-                        <label class="ds-toggle">
-                            <input type="checkbox" @bind="_form.AllowBackorders" />
-                            <span class="ds-toggle-track"></span>
-                        </label>
-                    </div>
                 </div>
             }
 
@@ -300,6 +293,109 @@ else
                 }
                 else
                 {
+                    <!-- Options: what the SKUs vary by (e.g. Pakiranje: 5 kg / 25 kg) -->
+                    <div class="ds-card">
+                        <div class="card-head">
+                            <div>
+                                <div class="card-title">Options</div>
+                                <div class="card-sub">What the SKUs differ by, such as packaging or colour. Each SKU picks one value per option.</div>
+                            </div>
+                        </div>
+
+                        @if (_optionError is not null)
+                        {
+                            <div style="background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger);border-radius:var(--r-md);padding:var(--sp-8) var(--sp-12);margin-bottom:var(--sp-12);font-size:var(--fs-300)">
+                                @_optionError
+                            </div>
+                        }
+
+                        @foreach (var opt in _options)
+                        {
+                            var o = opt;
+                            <div class="opt-block">
+                                <div class="opt-head">
+                                    @if (_editKind == "option" && _editId == o.Id)
+                                    {
+                                        <input class="ds-input" aria-label="Option name" @bind="_editText" @bind:event="oninput"
+                                               @onkeydown="@(e => OnEditKey(e))" />
+                                        <button class="ds-btn" disabled="@_optionBusy" @onclick="SaveEditAsync">Save</button>
+                                        <button class="ds-btn ds-btn-subtle" @onclick="CancelEdit">Cancel</button>
+                                    }
+                                    else
+                                    {
+                                        <span class="opt-name">@o.Name</span>
+                                        @if (o.IsNamePart) { <span class="ds-badge ds-badge-neutral" title="The value is used in the SKU name">in name</span> }
+                                        <span class="opt-spacer"></span>
+                                        @if (_confirmKind == "option" && _confirmId == o.Id)
+                                        {
+                                            <span class="opt-confirm">Delete option@(OptionUsage(o) > 0 ? $" and clear it from {OptionUsage(o)} SKU{(OptionUsage(o) == 1 ? "" : "s")}" : "")?</span>
+                                            <button class="ds-btn" style="color:var(--danger);border-color:var(--danger)" disabled="@_optionBusy"
+                                                    @onclick="@(() => DeleteOptionAsync(o.Id))">Delete</button>
+                                            <button class="ds-btn ds-btn-subtle" @onclick="@(() => _confirmKind = null)">Keep</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="ds-btn ds-btn-subtle" @onclick="@(() => StartEdit("option", o.Id, o.Name))">Rename</button>
+                                            <button class="ds-btn ds-btn-subtle" style="color:var(--danger)" @onclick="@(() => AskConfirm("option", o.Id))">Delete</button>
+                                        }
+                                    }
+                                </div>
+
+                                <div class="opt-values">
+                                    @foreach (var val in o.Values)
+                                    {
+                                        var v = val;
+                                        var used = ValueUsage(o, v);
+                                        if (_editKind == "value" && _editId == v.Id)
+                                        {
+                                            <span class="opt-chip is-editing">
+                                                <input class="ds-input" aria-label="Value name" @bind="_editText" @bind:event="oninput"
+                                                       @onkeydown="@(e => OnEditKey(e))" />
+                                                <button class="ds-btn" disabled="@_optionBusy" @onclick="SaveEditAsync">Save</button>
+                                                <button class="ds-btn ds-btn-subtle" @onclick="CancelEdit">Cancel</button>
+                                            </span>
+                                        }
+                                        else if (_confirmKind == "value" && _confirmId == v.Id)
+                                        {
+                                            <span class="opt-chip is-confirm">
+                                                Delete “@v.Name”@(used > 0 ? $" from {used} SKU{(used == 1 ? "" : "s")}" : "")?
+                                                <button class="opt-chip-btn" style="color:var(--danger)" disabled="@_optionBusy" @onclick="@(() => DeleteValueAsync(v.Id))">Delete</button>
+                                                <button class="opt-chip-btn" @onclick="@(() => _confirmKind = null)">Keep</button>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="opt-chip" title="@(used > 0 ? $"Used by {used} SKU{(used == 1 ? "" : "s")}" : "Not used by any SKU")">
+                                                <button class="opt-chip-label" title="Rename" @onclick="@(() => StartEdit("value", v.Id, v.Name))">@v.Name</button>
+                                                @if (used > 0) { <span class="opt-chip-count">@used</span> }
+                                                <button class="opt-chip-btn" aria-label="@($"Delete value {v.Name}")" title="Delete" @onclick="@(() => AskConfirm("value", v.Id))">×</button>
+                                            </span>
+                                        }
+                                    }
+                                    <span class="opt-add-value">
+                                        <input class="ds-input" aria-label="@($"New value for {o.Name}")" placeholder="Add value…"
+                                               value="@_newValue.GetValueOrDefault(o.Id)"
+                                               @oninput="@(e => _newValue[o.Id] = e.Value?.ToString() ?? "")"
+                                               @onkeydown="@(async e => { if (e.Key == "Enter") await AddValueAsync(o.Id); })" />
+                                        <button class="ds-btn" disabled="@(_optionBusy || string.IsNullOrWhiteSpace(_newValue.GetValueOrDefault(o.Id)))"
+                                                @onclick="@(() => AddValueAsync(o.Id))">Add</button>
+                                    </span>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="opt-new">
+                            <input class="ds-input" aria-label="New option name" placeholder="New option, e.g. Pakiranje"
+                                   @bind="_newOptionName" @bind:event="oninput"
+                                   @onkeydown="@(async e => { if (e.Key == "Enter") await AddOptionAsync(); })" />
+                            <label class="pl-check" title="Append this option's value to the SKU name">
+                                <input type="checkbox" @bind="_newOptionIsNamePart" />
+                                <span>Part of SKU name</span>
+                            </label>
+                            <button class="ds-btn" disabled="@(_optionBusy || string.IsNullOrWhiteSpace(_newOptionName))" @onclick="AddOptionAsync">Add option</button>
+                        </div>
+                    </div>
+
                     <div class="ds-card no-pad">
                         <div class="card-head" style="padding: var(--pad-card); padding-bottom: 0;">
                             <div>
@@ -394,52 +490,52 @@ else
                                 }
                                 <div class="form-grid cols-3" style="margin-bottom:var(--sp-16)">
                                     <div class="field">
-                                        <label class="field-label">SKU *</label>
-                                        <input class="ds-input" placeholder="e.g. PRD-001-BLK" @bind="_skuForm.Sku" />
+                                        <label for="sku-code" class="field-label">SKU *</label>
+                                        <input id="sku-code" class="ds-input" placeholder="e.g. PRD-001-BLK" @bind="_skuForm.Sku" />
                                     </div>
                                     <div class="field">
-                                        <label class="field-label">Name</label>
-                                        <input class="ds-input" placeholder="e.g. Black / Large" @bind="_skuForm.Name" />
+                                        <label for="sku-name" class="field-label">Name</label>
+                                        <input id="sku-name" class="ds-input" placeholder="e.g. Black / Large" @bind="_skuForm.Name" />
                                     </div>
                                     <div class="field">
-                                        <label class="field-label">Barcode (GTIN)</label>
-                                        <input class="ds-input" placeholder="e.g. 5901234123457" @bind="_skuForm.Gtin" />
+                                        <label for="sku-gtin" class="field-label">Barcode (GTIN)</label>
+                                        <input id="sku-gtin" class="ds-input" placeholder="e.g. 5901234123457" @bind="_skuForm.Gtin" />
                                     </div>
 
 @*                                     <div class="field">
-                                        <label class="field-label">Ext ref</label>
-                                        <input class="ds-input" placeholder="ERP reference" @bind="_skuForm.ExtRef" />
+                                        <label for="sku-ext-ref" class="field-label">Ext ref</label>
+                                        <input id="sku-ext-ref" class="ds-input" placeholder="ERP reference" @bind="_skuForm.ExtRef" />
                                     </div> *@
 
                                     <div class="field">
-                                        <label class="field-label">Price *</label>
-                                        <input class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_skuForm.Price" />
+                                        <label for="sku-price" class="field-label">Price *</label>
+                                        <input id="sku-price" class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_skuForm.Price" />
                                     </div>
                                     <div class="field">
-                                        <label class="field-label">Compare-at price</label>
-                                        <input class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_skuForm.CompareAtPrice" />
+                                        <label for="sku-compare-at-price" class="field-label">Compare-at price</label>
+                                        <input id="sku-compare-at-price" class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_skuForm.CompareAtPrice" />
                                     </div>
                                     <div class="field">
-                                        <label class="field-label">Cost price</label>
-                                        <input class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_skuForm.CostPrice" />
+                                        <label for="sku-cost-price" class="field-label">Cost price</label>
+                                        <input id="sku-cost-price" class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_skuForm.CostPrice" />
                                     </div>
                                     <div class="field">
-                                        <label class="field-label">Tax %</label>
-                                        <input class="ds-input" type="number" step="0.01" min="0" max="100" placeholder="0.00" @bind="_skuForm.Tax" />
+                                        <label for="sku-tax" class="field-label">Tax %</label>
+                                        <input id="sku-tax" class="ds-input" type="number" step="0.01" min="0" max="100" placeholder="0.00" @bind="_skuForm.Tax" />
                                     </div>
                                     <div class="field">
-                                        <label class="field-label">Stock qty</label>
-                                        <input class="ds-input" type="number" min="0" placeholder="0" @bind="_skuForm.StockQuantity" />
+                                        <label for="sku-stock-qty" class="field-label">Stock qty</label>
+                                        <input id="sku-stock-qty" class="ds-input" type="number" min="0" placeholder="0" @bind="_skuForm.StockQuantity" />
                                     </div>
                                     <div class="field">
-                                        <label class="field-label">Low-stock threshold</label>
-                                        <input class="ds-input" type="number" min="0" placeholder="5" @bind="_skuForm.LowStockThreshold" />
+                                        <label for="sku-low-stock-threshold" class="field-label">Low-stock threshold</label>
+                                        <input id="sku-low-stock-threshold" class="ds-input" type="number" min="0" placeholder="5" @bind="_skuForm.LowStockThreshold" />
                                     </div>
                                     @foreach (var opt in _options)
                                     {
                                         <div class="field">
-                                            <label class="field-label">@opt.Name</label>
-                                            <select class="ds-select" value="@_skuForm.OptionSelections.GetValueOrDefault(opt.Id)" @onchange="@(e => SetSkuOption(opt.Id, e.Value?.ToString()))">
+                                            <label for="sku-opt-@opt.Id" class="field-label">@opt.Name</label>
+                                            <select id="sku-opt-@opt.Id" class="ds-select" value="@(_skuForm.OptionSelections.TryGetValue(opt.Id, out var selVal) ? selVal.ToString() : "")" @onchange="@(e => SetSkuOption(opt.Id, e.Value?.ToString()))">
                                                 <option value="">— None —</option>
                                                 @foreach (var v in opt.Values)
                                                 {
@@ -450,7 +546,7 @@ else
                                     }
                                 </div>
                                 <div class="field" style="margin-bottom:var(--sp-16)">
-                                    <label class="field-label">SKU Image</label>
+                                    <span class="field-label">SKU image</span>
                                     <div style="display:flex;align-items:center;gap:var(--sp-12)">
                                         @if (_skuForm.ImagePath is not null)
                                         {
@@ -477,7 +573,17 @@ else
                                     </button>
                                     @if (_editingSkuId is not null)
                                     {
-                                        <button class="ds-btn ds-btn-subtle" style="color:var(--danger)" @onclick="DeleteSkuAsync" disabled="@_skuSaving">Delete</button>
+                                        @if (_confirmingSkuDelete)
+                                        {
+                                            <button class="ds-btn" style="color:var(--danger);border-color:var(--danger)" @onclick="DeleteSkuAsync" disabled="@_skuSaving">
+                                                @(_skuSaving ? "Deleting…" : "Confirm delete")
+                                            </button>
+                                            <button class="ds-btn ds-btn-subtle" @onclick="@(() => _confirmingSkuDelete = false)" disabled="@_skuSaving">Keep</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="ds-btn ds-btn-subtle" style="color:var(--danger)" @onclick="@(() => _confirmingSkuDelete = true)" disabled="@_skuSaving">Delete</button>
+                                        }
                                     }
                                     <button class="ds-btn ds-btn-subtle" @onclick="CloseSkuForm">Cancel</button>
                                 </div>
@@ -494,21 +600,14 @@ else
                     <div class="card-head">
                         <div class="card-title">Search engine preview</div>
                     </div>
-                    <div style="background:var(--bg-layer-alt);border:1px solid var(--stroke-1);border-radius:var(--r-md);padding:var(--sp-16);margin-bottom:var(--sp-20)">
+                    <div style="background:var(--bg-layer-alt);border:1px solid var(--stroke-1);border-radius:var(--r-md);padding:var(--sp-16);margin-bottom:var(--sp-12)">
                         <div style="color:#1a0dab;font-size:18px;margin-bottom:4px">@(string.IsNullOrEmpty(_form.Name) ? "Product name" : _form.Name)</div>
-                        <div style="color:#006621;font-size:13px;margin-bottom:4px">dwebshop.com/products/@(string.IsNullOrEmpty(_form.Slug) ? "product-slug" : _form.Slug)</div>
+                        <div style="color:#006621;font-size:13px;margin-bottom:4px">@PublicHost/shop/p/@(string.IsNullOrEmpty(_form.Slug) ? "product-slug" : _form.Slug)</div>
                         <div style="color:#545454;font-size:13px">@(string.IsNullOrEmpty(_form.Description) ? "Product description will appear here…" : _form.Description)</div>
                     </div>
-                    <div class="form-grid cols-1">
-                        <div class="field">
-                            <label class="field-label">SEO title</label>
-                            <input class="ds-input" placeholder="Defaults to product name" />
-                        </div>
-                        <div class="field">
-                            <label class="field-label">Meta description</label>
-                            <textarea class="ds-textarea" rows="3" placeholder="Defaults to short description…"></textarea>
-                        </div>
-                    </div>
+                    <span class="field-hint">
+                        Search results use the product name, URL slug and short description — edit them on the <strong>General</strong> tab.
+                    </span>
                 </div>
             }
 
@@ -521,8 +620,8 @@ else
             <div class="ds-card" style="padding: var(--sp-16)">
                 <div style="font-size:var(--fs-300);font-weight:var(--fw-semibold);margin-bottom:var(--sp-12)">Status</div>
                 <div class="field" style="margin-bottom:var(--sp-12)">
-                    <label class="field-label">Visibility</label>
-                    <select class="ds-select" value="@((int)_form.Status)" @onchange="@(e => _form.Status = (ProductStatus)int.Parse(e.Value!.ToString()!))">
+                    <label for="prod-visibility" class="field-label">Visibility</label>
+                    <select id="prod-visibility" class="ds-select" value="@((int)_form.Status)" @onchange="@(e => _form.Status = (ProductStatus)int.Parse(e.Value!.ToString()!))">
                         <option value="@((int)ProductStatus.Draft)">Draft</option>
                         <option value="@((int)ProductStatus.Active)">Active — visible</option>
                         <option value="@((int)ProductStatus.Archived)">Archived</option>
@@ -544,9 +643,9 @@ else
                 <div style="font-size:var(--fs-300);font-weight:var(--fw-semibold);margin-bottom:var(--sp-12)">Organisation</div>
                 <div class="form-grid cols-1" style="gap:var(--sp-12)">
                     <div class="field">
-                        <label class="field-label">Brand</label>
-                        <select class="ds-select" @bind="_form.BrandId">
-                            <option value="">— No brand —</option>
+                        <label for="prod-brand" class="field-label">Brand</label>
+                        <select id="prod-brand" class="ds-select" @bind="_form.BrandId">
+                            <option value="0">— No brand —</option>
                             @foreach (var b in _brands)
                             {
                                 <option value="@b.Id">@b.Name</option>
@@ -554,14 +653,27 @@ else
                         </select>
                     </div>
                     <div class="field">
-                        <label class="field-label">Primary category</label>
-                        <select class="ds-select" @bind="_form.PrimaryCategoryId">
-                            <option value="">— None —</option>
-                            @foreach (var c in _categories)
-                            {
-                                <option value="@c.Id">@(c.ParentName is not null ? $"{c.ParentName} → {c.Name}" : c.Name)</option>
-                            }
-                        </select>
+                        <span class="field-label">Categories @(_form.CategoryIds.Count > 0 ? $"({_form.CategoryIds.Count} selected)" : "")</span>
+                        @if (_categories.Count == 0)
+                        {
+                            <span class="field-hint">No categories defined yet.</span>
+                        }
+                        else
+                        {
+                            <input class="ds-input" type="search" aria-label="Filter categories" placeholder="Filter categories…"
+                                   @bind="_categoryFilter" @bind:event="oninput" />
+                            <div class="pl-check-list" style="max-height:220px;overflow-y:auto">
+                                @foreach (var c in VisibleCategories)
+                                {
+                                    var catId = c.Id;
+                                    <label class="pl-check">
+                                        <input type="checkbox" checked="@_form.CategoryIds.Contains(catId)"
+                                               @onchange="@(e => ToggleCategory(catId, (bool)e.Value!))" />
+                                        <span>@(c.ParentName is not null ? $"{c.ParentName} → {c.Name}" : c.Name)</span>
+                                    </label>
+                                }
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -582,7 +694,7 @@ else
                         </div>
                         <div style="display:flex;justify-content:space-between">
                             <span>Categories</span>
-                            <span style="color:var(--fg-1)">@(_detail?.Categories.Count ?? 0)</span>
+                            <span style="color:var(--fg-1)">@_form.CategoryIds.Count</span>
                         </div>
                     </div>
                 </div>
@@ -596,6 +708,8 @@ else
 	[Parameter] public string Slug { get; set; } = string.Empty;
 
     private bool _isNew => Slug == "new";
+    private string PublicHost =>
+        new Uri(Configuration["SiteUrl"] ?? "https://asgifiks.ba").Host;
     private string? PrimaryImage =>
         _skus.FirstOrDefault(s => s.ImagePath is not null)?.ImagePath
         ?? _detail?.Images.OrderBy(i => i.SortOrder).FirstOrDefault()?.Path;
@@ -622,6 +736,8 @@ else
     private decimal _singleSkuPrice;
     private decimal? _singleSkuCompareAtPrice;
     private decimal? _singleSkuCostPrice;
+    private int _singleSkuStock;
+    private int _singleSkuLowStock;
     private bool _skuPriceSaving;
     private bool _skuPriceSaved;
     private string? _skuPriceError;
@@ -631,15 +747,44 @@ else
     private bool _showSkuForm;
     private int? _editingSkuId;
     private bool _skuSaving;
+    private bool _confirmingSkuDelete;
+    private int? _pendingImageIdx;
     private string? _skuError;
     private SkuFormModel _skuForm = new();
 
     private FormModel _form = new();
 
+    // Slug of the product currently loaded into the form. Blazor reuses this
+    // component when navigating between /products/{slug} URLs, so the product
+    // is (re)loaded in OnParametersSetAsync whenever the slug changes.
+    private string? _loadedSlug;
+
     protected override async Task OnInitializedAsync()
     {
         _brands = await Mediator.Send(new GetBrandsQuery());
         _categories = await Mediator.Send(new GetCategoriesQuery());
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Slug == _loadedSlug) return;
+        _loadedSlug = Slug;
+
+        _loading = true;
+        _detail = null;
+        _form = new FormModel();
+        _skus = [];
+        _options = [];
+        _activeTab = 0;
+        _showSkuForm = false;
+        _pendingImageIdx = null;
+        _categoryFilter = "";
+        _error = null;
+        _saved = false;
+        _optionError = null;
+        _editKind = null;
+        _confirmKind = null;
+        _newValue.Clear();
 
         if (!_isNew)
         {
@@ -660,7 +805,7 @@ else
                 Status = _detail.Status,
                 IsFeatured = _detail.IsFeatured,
                 BrandId = _detail.BrandId.HasValue ? _detail.BrandId.Value : 0,
-                PrimaryCategoryId = _detail.Categories.FirstOrDefault()?.Id ?? 0,
+                CategoryIds = _detail.Categories.Select(c => c.Id).ToHashSet(),
             };
 
             var skuResult = await Mediator.Send(new GetProductSkusQuery(_detail.Id));
@@ -674,7 +819,7 @@ else
 
     private async Task ReloadSkusAsync()
     {
-        var result = await Mediator.Send(new GetProductSkusQuery(_detail.Id));
+        var result = await Mediator.Send(new GetProductSkusQuery(_detail!.Id));
         _skus = result.Skus;
         _options = result.Options;
         SyncSingleSkuPriceFields();
@@ -703,13 +848,143 @@ else
             Tax = sku.Tax,
             StockQuantity = sku.StockQuantity,
             LowStockThreshold = sku.LowStockThreshold,
-            OptionSelections = sku.Options.ToDictionary(
-                o => _options.FirstOrDefault(op => op.Name == o.OptionName)?.Id ?? 0,
-                o => _options.SelectMany(op => op.Values).FirstOrDefault(v => v.Name == o.OptionValueName)?.Id ?? 0),
+            OptionSelections = MapOptionSelections(sku),
             ImagePath = sku.ImagePath,
         };
         _skuError = null;
+        _confirmingSkuDelete = false;
         _showSkuForm = true;
+    }
+
+    // The SKU DTO only carries option/value names, so resolve them to ids within
+    // the matching option (value names like "Large" can repeat across options).
+    private Dictionary<int, int> MapOptionSelections(ProductSkuDto sku)
+    {
+        var map = new Dictionary<int, int>();
+        foreach (var o in sku.Options)
+        {
+            var option = _options.FirstOrDefault(op => op.Name == o.OptionName);
+            var value = option?.Values.FirstOrDefault(v => v.Name == o.OptionValueName);
+            if (option is not null && value is not null)
+                map[option.Id] = value.Id;
+        }
+        return map;
+    }
+
+    private string _categoryFilter = "";
+
+    // Ticked categories first (so they're visible without scrolling), then the
+    // rest, narrowed by the filter box. Ticked ones always stay listed.
+    private IEnumerable<CategoryDto> VisibleCategories =>
+        _categories
+            .Where(c => _form.CategoryIds.Contains(c.Id)
+                     || string.IsNullOrWhiteSpace(_categoryFilter)
+                     || c.Name.Contains(_categoryFilter, StringComparison.OrdinalIgnoreCase)
+                     || (c.ParentName?.Contains(_categoryFilter, StringComparison.OrdinalIgnoreCase) ?? false))
+            .OrderByDescending(c => _form.CategoryIds.Contains(c.Id));
+
+    // ── Options management ────────────────────────────────
+    private string? _optionError;
+    private bool _optionBusy;
+    private string _newOptionName = "";
+    private bool _newOptionIsNamePart = true;
+    private readonly Dictionary<int, string> _newValue = new();
+    private string? _editKind;     // "option" | "value" — inline rename in progress
+    private int _editId;
+    private string _editText = "";
+    private string? _confirmKind;  // "option" | "value" — delete awaiting confirmation
+    private int _confirmId;
+
+    // SKU DTOs carry option/value names, so usage is counted by name within this product.
+    private int OptionUsage(ProductOptionDto o) => _skus.Count(s => s.Options.Any(x => x.OptionName == o.Name));
+    private int ValueUsage(ProductOptionDto o, ProductOptionValueDto v) =>
+        _skus.Count(s => s.Options.Any(x => x.OptionName == o.Name && x.OptionValueName == v.Name));
+
+    private void StartEdit(string kind, int id, string text)
+    {
+        _editKind = kind; _editId = id; _editText = text; _confirmKind = null; _optionError = null;
+    }
+
+    private void CancelEdit() => _editKind = null;
+
+    private void AskConfirm(string kind, int id)
+    {
+        _confirmKind = kind; _confirmId = id; _editKind = null; _optionError = null;
+    }
+
+    private async Task OnEditKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SaveEditAsync();
+        else if (e.Key == "Escape") CancelEdit();
+    }
+
+    // Runs an option/value command, shows validation messages plainly, and reloads
+    // options and SKUs so names and usage counts stay in step.
+    private async Task<bool> RunOptionCommandAsync(Func<Task> command)
+    {
+        _optionError = null;
+        _optionBusy = true;
+        try
+        {
+            await command();
+            await ReloadSkusAsync();
+            return true;
+        }
+        catch (FluentValidation.ValidationException vex)
+        {
+            _optionError = string.Join(" ", vex.Errors.Select(e => e.ErrorMessage).Distinct());
+        }
+        catch (Exception ex)
+        {
+            _optionError = ex.Message;
+        }
+        finally
+        {
+            _optionBusy = false;
+        }
+        return false;
+    }
+
+    private async Task AddOptionAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newOptionName) || _detail is null) return;
+        if (await RunOptionCommandAsync(() => Mediator.Send(new CreateProductOptionCommand(_detail.Id, _newOptionName, _newOptionIsNamePart))))
+            _newOptionName = "";
+    }
+
+    private async Task AddValueAsync(int optionId)
+    {
+        var name = _newValue.GetValueOrDefault(optionId);
+        if (string.IsNullOrWhiteSpace(name) || _detail is null) return;
+        if (await RunOptionCommandAsync(() => Mediator.Send(new CreateProductOptionValueCommand(_detail.Id, optionId, name))))
+            _newValue[optionId] = "";
+    }
+
+    private async Task SaveEditAsync()
+    {
+        if (_editKind is null || string.IsNullOrWhiteSpace(_editText)) return;
+        Func<Task> command = _editKind == "option"
+            ? () => Mediator.Send(new RenameProductOptionCommand(_editId, _editText))
+            : () => Mediator.Send(new RenameProductOptionValueCommand(_editId, _editText));
+        if (await RunOptionCommandAsync(command))
+            _editKind = null;
+    }
+
+    private async Task DeleteOptionAsync(int id)
+    {
+        if (await RunOptionCommandAsync(() => Mediator.Send(new DeleteProductOptionCommand(id))))
+            _confirmKind = null;
+    }
+
+    private async Task DeleteValueAsync(int id)
+    {
+        if (await RunOptionCommandAsync(() => Mediator.Send(new DeleteProductOptionValueCommand(id))))
+            _confirmKind = null;
+    }
+
+    private void ToggleCategory(int id, bool selected)
+    {
+        if (selected) _form.CategoryIds.Add(id); else _form.CategoryIds.Remove(id);
     }
 
     private void CloseSkuForm()
@@ -734,16 +1009,16 @@ else
         _skuSaving = true;
         try
         {
+            var optVals = _skuForm.OptionSelections.Select(kv => (kv.Key, kv.Value)).ToList();
             if (_editingSkuId is null)
             {
-                var optVals = _skuForm.OptionSelections.Count > 0
-                    ? _skuForm.OptionSelections.Select(kv => (kv.Key, kv.Value)).ToList()
-                    : null;
-                await Mediator.Send(new CreateSkuCommand(0, _skuForm.Sku, _skuForm.ExtRef, _skuForm.Name, _skuForm.Gtin, _skuForm.Price, _skuForm.CompareAtPrice, _skuForm.CostPrice, _skuForm.Tax, _skuForm.StockQuantity, _skuForm.LowStockThreshold, _skuForm.ImagePath, optVals));
+                await Mediator.Send(new CreateSkuCommand(_detail!.Id, _skuForm.Sku, _skuForm.ExtRef, _skuForm.Name, _skuForm.Gtin, _skuForm.Price, _skuForm.CompareAtPrice, _skuForm.CostPrice, _skuForm.Tax, _skuForm.StockQuantity, _skuForm.LowStockThreshold, _skuForm.ImagePath, optVals.Count > 0 ? optVals : null));
             }
             else
             {
-                await Mediator.Send(new UpdateSkuCommand(_editingSkuId.Value, _skuForm.Sku, _skuForm.ExtRef, _skuForm.Name, _skuForm.Gtin, _skuForm.Price, _skuForm.CompareAtPrice, _skuForm.CostPrice, _skuForm.Tax, _skuForm.StockQuantity, _skuForm.LowStockThreshold, _skuForm.ImagePath));
+                // Always send the option list so clearing an option to "None" is saved too,
+                // and send "" for a removed image (null would mean "keep the current one").
+                await Mediator.Send(new UpdateSkuCommand(_editingSkuId.Value, _skuForm.Sku, _skuForm.ExtRef, _skuForm.Name, _skuForm.Gtin, _skuForm.Price, _skuForm.CompareAtPrice, _skuForm.CostPrice, _skuForm.Tax, _skuForm.StockQuantity, _skuForm.LowStockThreshold, _skuForm.ImagePath ?? "", optVals));
             }
             _showSkuForm = false;
             await ReloadSkusAsync();
@@ -775,6 +1050,7 @@ else
         finally
         {
             _skuSaving = false;
+            _confirmingSkuDelete = false;
         }
     }
 
@@ -794,21 +1070,38 @@ else
         try
         {
             var brandId = _form.BrandId > 0 ? (int?)_form.BrandId : null;
-            var catIds = _form.PrimaryCategoryId > 0 ? new List<int> { _form.PrimaryCategoryId } : null;
+            // Always a list (possibly empty) so unticking every category clears them.
+            var catIds = _form.CategoryIds.ToList();
 
             if (_isNew)
             {
                 var id = await Mediator.Send(new CreateProductCommand(
                     _form.Name, _form.Sku, _form.ExtRef, _form.Slug,
                     _form.Description, _form.Status, _form.IsFeatured, brandId, catIds));
-                Navigation.NavigateTo($"/products/{id}");
+
+                // CreateProductCommand has no full-description field — persist it with a follow-up update.
+                if (!string.IsNullOrWhiteSpace(_form.DetailDescription))
+                    await Mediator.Send(new UpdateProductCommand(
+                        id, _form.Name, _form.Sku, _form.ExtRef, _form.Slug,
+                        _form.Description, _form.Status, _form.IsFeatured, brandId, _form.DetailDescription, catIds));
+
+                // The route is keyed by slug, not id; OnParametersSetAsync loads it.
+                Navigation.NavigateTo($"/products/{Uri.EscapeDataString(_form.Slug)}");
             }
             else
             {
                 await Mediator.Send(new UpdateProductCommand(
-                    _detail.Id, _form.Name, _form.Sku, _form.ExtRef, _form.Slug,
+                    _detail!.Id, _form.Name, _form.Sku, _form.ExtRef, _form.Slug,
                     _form.Description, _form.Status, _form.IsFeatured, brandId, _form.DetailDescription, catIds));
                 _saved = true;
+
+                // Keep the address bar on the current slug so a reload still finds the product.
+                // Mark it loaded first: it's the same product, so no reload is needed.
+                if (_form.Slug != Slug)
+                {
+                    _loadedSlug = _form.Slug;
+                    Navigation.NavigateTo($"/products/{Uri.EscapeDataString(_form.Slug)}", replace: true);
+                }
             }
         }
         catch (Exception ex)
@@ -832,6 +1125,8 @@ else
             _singleSkuPrice = s.Price;
             _singleSkuCompareAtPrice = s.CompareAtPrice;
             _singleSkuCostPrice = s.CostPrice;
+            _singleSkuStock = s.StockQuantity;
+            _singleSkuLowStock = s.LowStockThreshold;
         }
     }
 
@@ -846,7 +1141,7 @@ else
             var sku = _skus[0];
             await Mediator.Send(new UpdateSkuCommand(sku.Id, sku.SKU, sku.ExtRef, sku.Name, sku.Gtin,
                 _singleSkuPrice, _singleSkuCompareAtPrice, _singleSkuCostPrice,
-                sku.Tax, sku.StockQuantity, sku.LowStockThreshold, sku.ImagePath));
+                sku.Tax, _singleSkuStock, _singleSkuLowStock, sku.ImagePath));
             await ReloadSkusAsync();
             _skuPriceSaved = true;
         }
@@ -889,6 +1184,7 @@ else
 
     private async Task RemoveImage(int index)
     {
+        _pendingImageIdx = null;
         if (_detail is null) return;
         var imageId = _detail.Images[index].Id;
         _detail.Images.RemoveAt(index);
@@ -930,13 +1226,6 @@ else
         public ProductStatus Status { get; set; } = ProductStatus.Draft;
         public bool IsFeatured { get; set; }
         public int BrandId { get; set; }
-        public int PrimaryCategoryId { get; set; }
-        public decimal? Price { get; set; }
-        public decimal? CompareAtPrice { get; set; }
-        public decimal? CostPrice { get; set; }
-        public int? Stock { get; set; }
-        public int? LowStockThreshold { get; set; }
-        public bool TrackStock { get; set; }
-        public bool AllowBackorders { get; set; }
+        public HashSet<int> CategoryIds { get; set; } = [];
     }
 }

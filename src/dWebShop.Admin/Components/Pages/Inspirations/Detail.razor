@@ -21,26 +21,54 @@
 {
     <div style="padding:48px;text-align:center;color:var(--fg-3);">Loading…</div>
 }
+else if (_notFound)
+{
+    <FluentMessageBar Intent="MessageBarIntent.Error">Article not found.</FluentMessageBar>
+}
 else
 {
-    <div class="page-head">
+    <div class="admin-page-head">
         <div>
-            <div class="fui-breadcrumb">
-                <a href="/inspirations" style="color:var(--fg-3);text-decoration:none">Inspirations</a>
-                <span class="fui-breadcrumb-sep">/</span>
-                <span>@(_isNew ? "New article" : _title)</span>
+            <nav class="admin-breadcrumb">
+                <a href="/blog">Content</a> › <a href="/inspirations">Inspirations</a> › @(_isNew ? "New article" : _title)
+            </nav>
+            <div class="admin-detail-title-row">
+                <h1 class="admin-page-title">@(_isNew ? "New article" : _title)</h1>
+                @if (!_isNew)
+                {
+                    <span class="pl-badge @(_published ? "pl-badge-active" : "pl-badge-inactive")">
+                        @(_published ? "Published" : "Draft")
+                    </span>
+                }
             </div>
-            <h1 class="page-title">@(_isNew ? "New article" : _title)</h1>
         </div>
-        <div class="page-actions">
-            <button class="ds-btn ds-btn-subtle" @onclick="@(() => Navigation.NavigateTo("/inspirations"))">Cancel</button>
+        <div class="admin-page-actions">
+            <FluentButton Appearance="ButtonAppearance.Transparent"
+                          IconStart="@(new Icons.Regular.Size16.ArrowLeft())"
+                          OnClick="@(() => Navigation.NavigateTo("/inspirations"))">Back</FluentButton>
             @if (!_isNew)
             {
-                <button class="ds-btn" style="color:var(--danger);border-color:var(--danger)" @onclick="DeleteConfirm">Delete</button>
+                @if (_confirmingDelete)
+                {
+                    <button class="ds-btn ds-btn-subtle" disabled="@_deleting"
+                            @onclick="@(() => _confirmingDelete = false)">Keep</button>
+                    <button class="ds-btn" style="color:var(--danger);border-color:var(--danger)"
+                            disabled="@_deleting" @onclick="DeleteConfirm">
+                        @(_deleting ? "Deleting…" : "Confirm delete")
+                    </button>
+                }
+                else
+                {
+                    <button class="ds-btn" style="color:var(--danger);border-color:var(--danger)"
+                            @onclick="@(() => _confirmingDelete = true)">Delete</button>
+                }
             }
-            <button class="ds-btn" style="background:var(--accent-rest);color:white;border-color:var(--accent-rest)" @onclick="Save" disabled="@_saving">
-                @(_saving ? "Saving…" : (_isNew ? "Create" : "Save changes"))
-            </button>
+            <FluentButton Appearance="ButtonAppearance.Primary"
+                          IconStart="@(new Icons.Regular.Size16.Checkmark())"
+                          Disabled="@_saving"
+                          OnClick="Save">
+                @(_saving ? "Saving…" : (_isNew ? "Create article" : "Save changes"))
+            </FluentButton>
         </div>
     </div>
 
@@ -48,6 +76,12 @@ else
     {
         <div style="background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger);border-radius:var(--r-md);padding:var(--sp-12) var(--sp-16);margin-bottom:var(--sp-16);font-size:var(--fs-300)">
             @_error
+        </div>
+    }
+    @if (_saved)
+    {
+        <div style="background:var(--success-bg);color:var(--success);border:1px solid var(--success);border-radius:var(--r-md);padding:var(--sp-12) var(--sp-16);margin-bottom:var(--sp-16);font-size:var(--fs-300)">
+            Article saved.
         </div>
     }
 
@@ -63,21 +97,21 @@ else
                 </div>
                 <div class="form-grid">
                     <div class="field span-2">
-                        <label class="field-label">Title *</label>
-                        <input class="ds-input" placeholder="e.g. ETICS sistem za energetsku sanaciju fasade" @bind="_title" />
+                        <label for="insp-title" class="field-label">Title *</label>
+                        <input id="insp-title" class="ds-input" placeholder="e.g. ETICS sistem za energetsku sanaciju fasade" @bind="_title" />
                     </div>
                     <div class="field span-2">
-                        <label class="field-label">Slug *</label>
-                        <input class="ds-input" placeholder="e.g. etics-sistem-energetska-sanacija" @bind="_slug" />
+                        <label for="insp-slug" class="field-label">Slug *</label>
+                        <input id="insp-slug" class="ds-input" placeholder="e.g. etics-sistem-energetska-sanacija" @bind="_slug" />
                         <span class="field-hint">Lowercase letters, numbers and hyphens only.</span>
                     </div>
                     <div class="field span-2">
-                        <label class="field-label">Lede (subtitle)</label>
-                        <textarea class="ds-textarea" rows="3" placeholder="Short intro shown in card and article header…" @bind="_lede"></textarea>
+                        <label for="insp-lede-subtitle" class="field-label">Lede (subtitle)</label>
+                        <textarea id="insp-lede-subtitle" class="ds-textarea" rows="3" placeholder="Short intro shown in card and article header…" @bind="_lede"></textarea>
                     </div>
                     <div class="field span-2">
-                        <label class="field-label">Hero label</label>
-                        <input class="ds-input" placeholder="e.g. fasada / etics sistem" @bind="_heroLabel" />
+                        <label for="insp-hero-label" class="field-label">Hero label</label>
+                        <input id="insp-hero-label" class="ds-input" placeholder="e.g. fasada / etics sistem" @bind="_heroLabel" />
                         <span class="field-hint">Small label shown on the article card.</span>
                     </div>
                 </div>
@@ -172,7 +206,7 @@ else
                 <div style="font-size:var(--fs-200);color:var(--fg-3);margin-bottom:var(--sp-8)">
                     Array of: <code>{"type":"paragraph","text":"…"}</code> · <code>{"type":"heading","text":"…"}</code> · <code>{"type":"bulletlist","items":["…"]}</code> · <code>{"type":"callout","label":"…","text":"…"}</code> · <code>{"type":"split","image":"inspiration_images/foto.jpg","text":"Paragraf tekst.\n\nDrugi paragraf.","imageLeft":true,"bgColor":"#f5f0ea"}</code>
                 </div>
-                <textarea class="ds-textarea" rows="20" style="font-family:monospace;font-size:12px;" @bind="_content"></textarea>
+                <textarea aria-label="Content sections (JSON)" class="ds-textarea" rows="20" style="font-family:monospace;font-size:12px;" @bind="_content"></textarea>
             </div>
 
         </div>
@@ -185,13 +219,13 @@ else
                 <div style="font-size:var(--fs-300);font-weight:var(--fw-semibold);margin-bottom:var(--sp-12)">Publication</div>
 
                 <div class="field" style="margin-bottom:var(--sp-12)">
-                    <label class="field-label">Brand slug *</label>
-                    <input class="ds-input" placeholder="sto, xypex, cortec" @bind="_brandSlug" />
+                    <label for="insp-brand-slug" class="field-label">Brand slug *</label>
+                    <input id="insp-brand-slug" class="ds-input" placeholder="sto, xypex, cortec" @bind="_brandSlug" />
                 </div>
 
                 <div class="field" style="margin-bottom:var(--sp-12)">
-                    <label class="field-label">Content type</label>
-                    <select class="ds-input" @bind="_contentTypeStr">
+                    <label for="insp-content-type" class="field-label">Content type</label>
+                    <select id="insp-content-type" class="ds-input" @bind="_contentTypeStr">
                         <option value="Story">Story — Priča</option>
                         <option value="Reference">Reference — Referenca</option>
                         <option value="Collection">Collection — Kolekcija</option>
@@ -199,13 +233,13 @@ else
                 </div>
 
                 <div class="field" style="margin-bottom:var(--sp-12)">
-                    <label class="field-label">Published at</label>
-                    <input class="ds-input" placeholder="2024-01-15" @bind="_publishedAt" />
+                    <label for="insp-published-at" class="field-label">Published at</label>
+                    <input id="insp-published-at" class="ds-input" placeholder="2024-01-15" @bind="_publishedAt" />
                 </div>
 
                 <div class="field" style="margin-bottom:var(--sp-16)">
-                    <label class="field-label">Read time (minutes)</label>
-                    <input class="ds-input" type="number" min="1" @bind="_readMinStr" />
+                    <label for="insp-read-time-minutes" class="field-label">Read time (minutes)</label>
+                    <input id="insp-read-time-minutes" class="ds-input" type="number" min="1" @bind="_readMinStr" />
                 </div>
 
                 <div style="display:flex;flex-direction:column;gap:var(--sp-8)">
@@ -223,20 +257,20 @@ else
                 <div style="font-size:var(--fs-300);font-weight:var(--fw-semibold);margin-bottom:var(--sp-12)">Metadata</div>
 
                 <div class="field" style="margin-bottom:var(--sp-12)">
-                    <label class="field-label">Authors</label>
-                    <input class="ds-input" placeholder="Tehnicki tim ASGifiks|STO" @bind="_authors" />
+                    <label for="insp-authors" class="field-label">Authors</label>
+                    <input id="insp-authors" class="ds-input" placeholder="Tehnicki tim ASGifiks|STO" @bind="_authors" />
                     <span class="field-hint">Pipe-separated</span>
                 </div>
 
                 <div class="field" style="margin-bottom:var(--sp-12)">
-                    <label class="field-label">Tags</label>
-                    <input class="ds-input" placeholder="Energetska efikasnost|ETICS" @bind="_tags" />
+                    <label for="insp-tags" class="field-label">Tags</label>
+                    <input id="insp-tags" class="ds-input" placeholder="Energetska efikasnost|ETICS" @bind="_tags" />
                     <span class="field-hint">Pipe-separated</span>
                 </div>
 
                 <div class="field">
-                    <label class="field-label">Linked product slugs</label>
-                    <input class="ds-input" placeholder="sto-armat-classic|sto-eps-100" @bind="_linkedProductSlugs" />
+                    <label for="insp-linked-product-slugs" class="field-label">Linked product slugs</label>
+                    <input id="insp-linked-product-slugs" class="ds-input" placeholder="sto-armat-classic|sto-eps-100" @bind="_linkedProductSlugs" />
                     <span class="field-hint">Pipe-separated</span>
                 </div>
             </div>
@@ -246,19 +280,19 @@ else
                 <div style="font-size:var(--fs-300);font-weight:var(--fw-semibold);margin-bottom:var(--sp-12)">SEO</div>
 
                 <div class="field" style="margin-bottom:var(--sp-12)">
-                    <label class="field-label">Meta title</label>
-                    <input class="ds-input" placeholder="Defaults to article title if empty" @bind="_metaTitle" />
+                    <label for="insp-meta-title" class="field-label">Meta title</label>
+                    <input id="insp-meta-title" class="ds-input" placeholder="Defaults to article title if empty" @bind="_metaTitle" />
                     <span class="field-hint">@(_metaTitle.Length)/60 chars</span>
                 </div>
 
                 <div class="field" style="margin-bottom:var(--sp-12)">
-                    <label class="field-label">Meta description</label>
-                    <textarea class="ds-textarea" rows="3" placeholder="Defaults to lede if empty" @bind="_metaDescription"></textarea>
+                    <label for="insp-meta-description" class="field-label">Meta description</label>
+                    <textarea id="insp-meta-description" class="ds-textarea" rows="3" placeholder="Defaults to lede if empty" @bind="_metaDescription"></textarea>
                     <span class="field-hint">@(_metaDescription.Length)/160 chars</span>
                 </div>
 
                 <div class="field">
-                    <label class="field-label">OG image</label>
+                    <span class="field-label">OG image</span>
                     @if (!string.IsNullOrWhiteSpace(_ogImage))
                     {
                         <div style="display:flex;align-items:center;gap:var(--sp-8);margin-bottom:var(--sp-8)">
@@ -284,9 +318,16 @@ else
     private ImagePickerDialog _ogPicker = default!;
     private ImagePickerDialog _galleryPicker = default!;
 
-    private bool _isNew;
+    // Derived from the route, not captured once: after "Create" the page navigates to
+    // /inspirations/{id} and Blazor reuses this component, so a stored flag would
+    // stay true and the next Save would create a duplicate.
+    private bool _isNew => Id is null;
     private bool _loading = true;
     private bool _saving;
+    private bool _saved;
+    private bool _notFound;
+    private bool _confirmingDelete;
+    private bool _deleting;
     private string _error = "";
 
     private string _title = "";
@@ -322,10 +363,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _isNew = Id is null;
         if (!_isNew)
         {
             var dto = await Mediator.Send(new GetInspirationByIdQuery(Id!.Value));
+            _notFound = dto is null;
             if (dto is not null)
             {
                 _title = dto.Title;
@@ -384,6 +425,7 @@ else
     private async Task Save()
     {
         _saving = true;
+        _saved = false;
         _error = "";
         try
         {
@@ -403,6 +445,7 @@ else
                     _authors, _tags, _content, _linkedProductSlugs,
                     ContentType, _isFeatured, _published, _brandSlug,
                     _coverImage, GalleryJson, _metaTitle, _metaDescription, _ogImage));
+                _saved = true;
             }
         }
         catch (Exception ex)
@@ -414,6 +457,8 @@ else
 
     private async Task DeleteConfirm()
     {
+        _error = "";
+        _deleting = true;
         try
         {
             await Mediator.Send(new DeleteInspirationCommand(Id!.Value));
@@ -422,6 +467,8 @@ else
         catch (Exception ex)
         {
             _error = ex.Message;
+            _deleting = false;
+            _confirmingDelete = false;
         }
     }
 }

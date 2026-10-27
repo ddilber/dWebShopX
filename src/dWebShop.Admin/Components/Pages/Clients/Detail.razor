@@ -13,7 +13,7 @@
 
 @if (_loading)
 {
-    <FluentProgressRing />
+    <FluentSpinner />
 }
 else if (_notFound)
 {
@@ -110,7 +110,7 @@ else
                 <div class="order-card-title" style="margin-bottom: 12px;">Pricelists</div>
 
                 <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                    <select class="co-select" @bind="_selectedPricelistId" style="flex: 1;"
+                    <select aria-label="Pricelist to assign" class="co-select" @bind="_selectedPricelistId" style="flex: 1;"
                             disabled="@(AvailablePricelists.Count == 0)">
                         <option value="0">@(AvailablePricelists.Count == 0 ? "All assigned" : "— add a pricelist —")</option>
                         @foreach (var pl in AvailablePricelists)

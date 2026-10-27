@@ -21,7 +21,7 @@
             @* Search + Upload row *@
             <div class="img-picker-toolbar">
                 <FluentIcon Value="@(new Icons.Regular.Size20.Search())" Style="color: var(--colorNeutralForeground3); flex-shrink:0;" />
-                <input type="search" class="admin-search-input" style="flex:1;"
+                <input aria-label="Search images" type="search" class="admin-search-input" style="flex:1;"
                        placeholder="Naziv slike"
                        @bind="_searchFilter" @bind:event="oninput" />
                 <FluentButton Appearance="ButtonAppearance.Primary" OnClick="OpenFilePicker">

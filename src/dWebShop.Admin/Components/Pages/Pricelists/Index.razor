@@ -8,18 +8,27 @@
 
 <PageTitle>Pricelists — dWebShop Admin</PageTitle>
 
-<FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom: 16px;">
-    <FluentLabel Style="font-size: 22px; font-weight: 600;">Pricelists</FluentLabel>
-    <FluentSpacer />
-    <FluentButton Appearance="ButtonAppearance.Primary" IconStart="@(new Icons.Regular.Size16.Add())" OnClick="@(() => Navigation.NavigateTo("/pricelists/new"))">
-        Add Pricelist
-    </FluentButton>
-</FluentStack>
-<FluentDivider Style="margin-bottom: 24px;" />
+<div class="admin-page-head">
+    <div>
+        <nav class="admin-breadcrumb">
+            <a href="/orders">Commerce</a> › Pricelists
+        </nav>
+        <h1 class="admin-page-title">Pricelists</h1>
+        @if (_pricelists is not null)
+        {
+            <p class="admin-page-sub">@_pricelists.Count pricelist@(_pricelists.Count == 1 ? "" : "s")</p>
+        }
+    </div>
+    <div class="admin-page-actions">
+        <FluentButton Appearance="ButtonAppearance.Primary" IconStart="@(new Icons.Regular.Size16.Add())" OnClick="@(() => Navigation.NavigateTo("/pricelists/new"))">
+            Add pricelist
+        </FluentButton>
+    </div>
+</div>
 
 @if (_loading)
 {
-    <FluentProgressRing />
+    <FluentSpinner />
 }
 else if (_pricelists is not null)
 {

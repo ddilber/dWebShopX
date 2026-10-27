@@ -30,13 +30,13 @@
 
 @if (_loading)
 {
-    <FluentProgressRing />
+    <FluentSpinner />
 }
 else if (_clients is not null)
 {
     <FluentCard>
         <div style="max-width: 320px; margin-bottom: 16px;">
-            <input class="co-input" @bind="_search" @bind:event="oninput" placeholder="Search by company or email…" />
+            <input aria-label="Search clients" class="co-input" @bind="_search" @bind:event="oninput" placeholder="Search by company or email…" />
         </div>
 
         @if (Filtered.Count > 0)
