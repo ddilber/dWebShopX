@@ -88,7 +88,7 @@
             }
 
             <div class="pl-add-row">
-                <input class="co-input" placeholder="New category…" value="@_newCategory"
+                <input aria-label="New category name" class="co-input" placeholder="New category…" value="@_newCategory"
                        @oninput="e => _newCategory = e.Value?.ToString() ?? string.Empty"
                        @onkeydown="OnCategoryKeyDown" />
                 <FluentButton Appearance="ButtonAppearance.Outline"
@@ -128,7 +128,7 @@
             </div>
 
             <div class="pl-add-row">
-                <input class="co-input" placeholder="New tag…" value="@_newTag"
+                <input aria-label="New tag name" class="co-input" placeholder="New tag…" value="@_newTag"
                        @oninput="e => _newTag = e.Value?.ToString() ?? string.Empty"
                        @onkeydown="OnTagKeyDown" />
                 <FluentButton Appearance="ButtonAppearance.Outline"

@@ -38,7 +38,7 @@ else
                 <div class="order-card-title" style="margin-bottom: 16px;">Categories</div>
 
                 <div class="pl-add-row" style="border-top: none; margin-top: 0; padding-top: 0;">
-                    <input class="co-input" placeholder="New category name…" value="@_newCategory"
+                    <input aria-label="New category name" class="co-input" placeholder="New category name…" value="@_newCategory"
                            @oninput="e => _newCategory = e.Value?.ToString() ?? string.Empty"
                            @onkeydown="e => OnKeyDown(e, AddCategoryAsync)" />
                     <FluentButton Appearance="ButtonAppearance.Primary"
@@ -90,7 +90,7 @@ else
                 <div class="order-card-title" style="margin-bottom: 16px;">Tags</div>
 
                 <div class="pl-add-row" style="border-top: none; margin-top: 0; padding-top: 0;">
-                    <input class="co-input" placeholder="New tag name…" value="@_newTag"
+                    <input aria-label="New tag name" class="co-input" placeholder="New tag name…" value="@_newTag"
                            @oninput="e => _newTag = e.Value?.ToString() ?? string.Empty"
                            @onkeydown="e => OnKeyDown(e, AddTagAsync)" />
                     <FluentButton Appearance="ButtonAppearance.Primary"

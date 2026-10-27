@@ -49,7 +49,7 @@
     <div class="admin-list-controls">
         <div class="admin-list-search">
             <FluentIcon Value="@(new Icons.Regular.Size16.Search())" Style="color: var(--colorNeutralForeground3); flex-shrink:0;" />
-            <input type="search"
+            <input aria-label="Search orders" type="search"
                    value="@_search"
                    @oninput="OnSearchInput"
                    @onkeyup="OnSearchKeyUp"

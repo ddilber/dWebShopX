@@ -50,7 +50,7 @@ else if (_posts is not null)
 {
     <FluentCard>
         <div style="max-width: 320px; margin-bottom: 16px;">
-            <input class="co-input" @bind="_search" @bind:event="oninput" placeholder="Search by title…" />
+            <input aria-label="Search posts" class="co-input" @bind="_search" @bind:event="oninput" placeholder="Search by title…" />
         </div>
 
         @if (Filtered.Count > 0)

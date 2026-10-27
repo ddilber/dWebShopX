@@ -27,31 +27,34 @@
 }
 else
 {
-    <div class="page-head">
+    <div class="admin-page-head">
         <div style="display:flex;align-items:center;gap:var(--sp-16)">
             @if (PrimaryImage is not null)
             {
-                <img src="@PrimaryImage" alt="@_form.Name"
-                     style="width:64px;height:64px;object-fit:cover;border-radius:var(--r-md);border:1px solid var(--stroke-1);flex-shrink:0;" />
+                <img src="@PrimaryImage" alt=""
+                     style="width:56px;height:56px;object-fit:cover;border-radius:var(--r-md);border:1px solid var(--stroke-1);flex-shrink:0;" />
             }
             <div>
-            <div class="fui-breadcrumb">
-                <a href="/products" style="color:var(--fg-3);text-decoration:none">Products</a>
-                <span class="fui-breadcrumb-sep">/</span>
-                <span>@(_isNew ? "New product" : _form.Name)</span>
-            </div>
-            <h1 class="page-title">@(_isNew ? "New product" : _form.Name)</h1>
-            @if (!_isNew)
-            {
-                <p class="page-sub">SKU @_form.Sku</p>
-            }
+                <nav class="admin-breadcrumb">
+                    <a href="/products">Catalogue</a> › <a href="/products">Products</a> › @(_isNew ? "New product" : _form.Name)
+                </nav>
+                <h1 class="admin-page-title">@(_isNew ? "New product" : _form.Name)</h1>
+                @if (!_isNew && !string.IsNullOrWhiteSpace(_form.Sku))
+                {
+                    <p class="admin-page-sub">SKU @_form.Sku</p>
+                }
             </div>
         </div>
-        <div class="page-actions">
-            <button class="ds-btn ds-btn-subtle" @onclick="@(() => Navigation.NavigateTo("/products"))">Cancel</button>
-            <button class="ds-btn" style="background:var(--accent-rest);color:white;border-color:var(--accent-rest)" @onclick="SaveAsync" disabled="@_saving">
-                @if (_saving) { <span>Saving…</span> } else { <span>Save</span> }
-            </button>
+        <div class="admin-page-actions">
+            <FluentButton Appearance="ButtonAppearance.Transparent"
+                          IconStart="@(new Icons.Regular.Size16.ArrowLeft())"
+                          OnClick="@(() => Navigation.NavigateTo("/products"))">Back</FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Primary"
+                          IconStart="@(new Icons.Regular.Size16.Checkmark())"
+                          Disabled="@_saving"
+                          OnClick="SaveAsync">
+                @if (_saving) { <span>Saving…</span> } else { <span>@(_isNew ? "Create product" : "Save changes")</span> }
+            </FluentButton>
         </div>
     </div>
 
@@ -91,28 +94,28 @@ else
                     </div>
                     <div class="form-grid">
                         <div class="field span-2">
-                            <label class="field-label">Product name *</label>
-                            <input class="ds-input" placeholder="e.g. Premium Wireless Headphones" @bind="_form.Name" />
+                            <label for="prod-product-name" class="field-label">Product name *</label>
+                            <input id="prod-product-name" class="ds-input" placeholder="e.g. Premium Wireless Headphones" @bind="_form.Name" />
                         </div>
 @*                         <div class="field">
-                            <label class="field-label">SKU</label>
-                            <input class="ds-input" placeholder="e.g. PRD-001" @bind="_form.Sku" />
+                            <label for="prod-sku" class="field-label">SKU</label>
+                            <input id="prod-sku" class="ds-input" placeholder="e.g. PRD-001" @bind="_form.Sku" />
                         </div>
                         <div class="field">
-                            <label class="field-label">External reference</label>
-                            <input class="ds-input" placeholder="e.g. ERP-12345" @bind="_form.ExtRef" />
+                            <label for="prod-external-reference" class="field-label">External reference</label>
+                            <input id="prod-external-reference" class="ds-input" placeholder="e.g. ERP-12345" @bind="_form.ExtRef" />
                         </div>
  *@                        <div class="field span-2">
-                            <label class="field-label">URL slug *</label>
-                            <input class="ds-input" placeholder="e.g. premium-wireless-headphones" @bind="_form.Slug" />
+                            <label for="prod-url-slug" class="field-label">URL slug *</label>
+                            <input id="prod-url-slug" class="ds-input" placeholder="e.g. premium-wireless-headphones" @bind="_form.Slug" />
                             <span class="field-hint">Used in product URLs. Lowercase letters, numbers and hyphens only.</span>
                         </div>
                         <div class="field span-2">
-                            <label class="field-label">Short description</label>
-                            <textarea class="ds-textarea" rows="3" placeholder="Brief product summary shown in listings…" @bind="_form.Description"></textarea>
+                            <label for="prod-short-description" class="field-label">Short description</label>
+                            <textarea id="prod-short-description" class="ds-textarea" rows="3" placeholder="Brief product summary shown in listings…" @bind="_form.Description"></textarea>
                         </div>
                         <div class="field span-2">
-                            <label class="field-label">Full description</label>
+                            <span class="field-label">Full description</span>
                             <RichTextEditor @ref="_detailEditor" Html="@_form.DetailDescription" />
                         </div>
                     </div>
@@ -238,26 +241,26 @@ else
                         }
                         <div class="form-grid cols-3">
                             <div class="field">
-                                <label class="field-label">Price *</label>
-                                <input class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_singleSkuPrice" />
+                                <label for="prod-price" class="field-label">Price *</label>
+                                <input id="prod-price" class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_singleSkuPrice" />
                             </div>
                             <div class="field">
-                                <label class="field-label">Compare-at price</label>
-                                <input class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_singleSkuCompareAtPrice" />
+                                <label for="prod-compare-at-price" class="field-label">Compare-at price</label>
+                                <input id="prod-compare-at-price" class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_singleSkuCompareAtPrice" />
                                 <span class="field-hint">Shown as strikethrough</span>
                             </div>
                             <div class="field">
-                                <label class="field-label">Cost per item</label>
-                                <input class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_singleSkuCostPrice" />
+                                <label for="prod-cost-per-item" class="field-label">Cost per item</label>
+                                <input id="prod-cost-per-item" class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_singleSkuCostPrice" />
                                 <span class="field-hint">Not shown to customers</span>
                             </div>
                             <div class="field">
-                                <label class="field-label">Stock quantity</label>
-                                <input class="ds-input" type="number" min="0" placeholder="0" @bind="_singleSkuStock" />
+                                <label for="prod-stock-quantity" class="field-label">Stock quantity</label>
+                                <input id="prod-stock-quantity" class="ds-input" type="number" min="0" placeholder="0" @bind="_singleSkuStock" />
                             </div>
                             <div class="field">
-                                <label class="field-label">Low stock threshold</label>
-                                <input class="ds-input" type="number" min="0" placeholder="5" @bind="_singleSkuLowStock" />
+                                <label for="prod-low-stock-threshold" class="field-label">Low stock threshold</label>
+                                <input id="prod-low-stock-threshold" class="ds-input" type="number" min="0" placeholder="5" @bind="_singleSkuLowStock" />
                                 <span class="field-hint">Listed under <strong>Low stock</strong> at or below this</span>
                             </div>
                         </div>
@@ -383,52 +386,52 @@ else
                                 }
                                 <div class="form-grid cols-3" style="margin-bottom:var(--sp-16)">
                                     <div class="field">
-                                        <label class="field-label">SKU *</label>
-                                        <input class="ds-input" placeholder="e.g. PRD-001-BLK" @bind="_skuForm.Sku" />
+                                        <label for="sku-code" class="field-label">SKU *</label>
+                                        <input id="sku-code" class="ds-input" placeholder="e.g. PRD-001-BLK" @bind="_skuForm.Sku" />
                                     </div>
                                     <div class="field">
-                                        <label class="field-label">Name</label>
-                                        <input class="ds-input" placeholder="e.g. Black / Large" @bind="_skuForm.Name" />
+                                        <label for="sku-name" class="field-label">Name</label>
+                                        <input id="sku-name" class="ds-input" placeholder="e.g. Black / Large" @bind="_skuForm.Name" />
                                     </div>
                                     <div class="field">
-                                        <label class="field-label">Barcode (GTIN)</label>
-                                        <input class="ds-input" placeholder="e.g. 5901234123457" @bind="_skuForm.Gtin" />
+                                        <label for="sku-gtin" class="field-label">Barcode (GTIN)</label>
+                                        <input id="sku-gtin" class="ds-input" placeholder="e.g. 5901234123457" @bind="_skuForm.Gtin" />
                                     </div>
 
 @*                                     <div class="field">
-                                        <label class="field-label">Ext ref</label>
-                                        <input class="ds-input" placeholder="ERP reference" @bind="_skuForm.ExtRef" />
+                                        <label for="sku-ext-ref" class="field-label">Ext ref</label>
+                                        <input id="sku-ext-ref" class="ds-input" placeholder="ERP reference" @bind="_skuForm.ExtRef" />
                                     </div> *@
 
                                     <div class="field">
-                                        <label class="field-label">Price *</label>
-                                        <input class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_skuForm.Price" />
+                                        <label for="sku-price" class="field-label">Price *</label>
+                                        <input id="sku-price" class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_skuForm.Price" />
                                     </div>
                                     <div class="field">
-                                        <label class="field-label">Compare-at price</label>
-                                        <input class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_skuForm.CompareAtPrice" />
+                                        <label for="sku-compare-at-price" class="field-label">Compare-at price</label>
+                                        <input id="sku-compare-at-price" class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_skuForm.CompareAtPrice" />
                                     </div>
                                     <div class="field">
-                                        <label class="field-label">Cost price</label>
-                                        <input class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_skuForm.CostPrice" />
+                                        <label for="sku-cost-price" class="field-label">Cost price</label>
+                                        <input id="sku-cost-price" class="ds-input" type="number" step="0.01" min="0" placeholder="0.00" @bind="_skuForm.CostPrice" />
                                     </div>
                                     <div class="field">
-                                        <label class="field-label">Tax %</label>
-                                        <input class="ds-input" type="number" step="0.01" min="0" max="100" placeholder="0.00" @bind="_skuForm.Tax" />
+                                        <label for="sku-tax" class="field-label">Tax %</label>
+                                        <input id="sku-tax" class="ds-input" type="number" step="0.01" min="0" max="100" placeholder="0.00" @bind="_skuForm.Tax" />
                                     </div>
                                     <div class="field">
-                                        <label class="field-label">Stock qty</label>
-                                        <input class="ds-input" type="number" min="0" placeholder="0" @bind="_skuForm.StockQuantity" />
+                                        <label for="sku-stock-qty" class="field-label">Stock qty</label>
+                                        <input id="sku-stock-qty" class="ds-input" type="number" min="0" placeholder="0" @bind="_skuForm.StockQuantity" />
                                     </div>
                                     <div class="field">
-                                        <label class="field-label">Low-stock threshold</label>
-                                        <input class="ds-input" type="number" min="0" placeholder="5" @bind="_skuForm.LowStockThreshold" />
+                                        <label for="sku-low-stock-threshold" class="field-label">Low-stock threshold</label>
+                                        <input id="sku-low-stock-threshold" class="ds-input" type="number" min="0" placeholder="5" @bind="_skuForm.LowStockThreshold" />
                                     </div>
                                     @foreach (var opt in _options)
                                     {
                                         <div class="field">
-                                            <label class="field-label">@opt.Name</label>
-                                            <select class="ds-select" value="@(_skuForm.OptionSelections.TryGetValue(opt.Id, out var selVal) ? selVal.ToString() : "")" @onchange="@(e => SetSkuOption(opt.Id, e.Value?.ToString()))">
+                                            <label for="sku-opt-@opt.Id" class="field-label">@opt.Name</label>
+                                            <select id="sku-opt-@opt.Id" class="ds-select" value="@(_skuForm.OptionSelections.TryGetValue(opt.Id, out var selVal) ? selVal.ToString() : "")" @onchange="@(e => SetSkuOption(opt.Id, e.Value?.ToString()))">
                                                 <option value="">— None —</option>
                                                 @foreach (var v in opt.Values)
                                                 {
@@ -439,7 +442,7 @@ else
                                     }
                                 </div>
                                 <div class="field" style="margin-bottom:var(--sp-16)">
-                                    <label class="field-label">SKU Image</label>
+                                    <span class="field-label">SKU image</span>
                                     <div style="display:flex;align-items:center;gap:var(--sp-12)">
                                         @if (_skuForm.ImagePath is not null)
                                         {
@@ -513,8 +516,8 @@ else
             <div class="ds-card" style="padding: var(--sp-16)">
                 <div style="font-size:var(--fs-300);font-weight:var(--fw-semibold);margin-bottom:var(--sp-12)">Status</div>
                 <div class="field" style="margin-bottom:var(--sp-12)">
-                    <label class="field-label">Visibility</label>
-                    <select class="ds-select" value="@((int)_form.Status)" @onchange="@(e => _form.Status = (ProductStatus)int.Parse(e.Value!.ToString()!))">
+                    <label for="prod-visibility" class="field-label">Visibility</label>
+                    <select id="prod-visibility" class="ds-select" value="@((int)_form.Status)" @onchange="@(e => _form.Status = (ProductStatus)int.Parse(e.Value!.ToString()!))">
                         <option value="@((int)ProductStatus.Draft)">Draft</option>
                         <option value="@((int)ProductStatus.Active)">Active — visible</option>
                         <option value="@((int)ProductStatus.Archived)">Archived</option>
@@ -536,8 +539,8 @@ else
                 <div style="font-size:var(--fs-300);font-weight:var(--fw-semibold);margin-bottom:var(--sp-12)">Organisation</div>
                 <div class="form-grid cols-1" style="gap:var(--sp-12)">
                     <div class="field">
-                        <label class="field-label">Brand</label>
-                        <select class="ds-select" @bind="_form.BrandId">
+                        <label for="prod-brand" class="field-label">Brand</label>
+                        <select id="prod-brand" class="ds-select" @bind="_form.BrandId">
                             <option value="">— No brand —</option>
                             @foreach (var b in _brands)
                             {
@@ -683,7 +686,7 @@ else
 
     private async Task ReloadSkusAsync()
     {
-        var result = await Mediator.Send(new GetProductSkusQuery(_detail.Id));
+        var result = await Mediator.Send(new GetProductSkusQuery(_detail!.Id));
         _skus = result.Skus;
         _options = result.Options;
         SyncSingleSkuPriceFields();

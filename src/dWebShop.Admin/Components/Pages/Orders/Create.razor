@@ -45,8 +45,8 @@
             @* Product picker row *@
             <div class="co-picker-row">
                 <div class="co-picker-field">
-                    <label class="co-label">Product</label>
-                    <select class="co-select" value="@(_selectedProductId?.ToString() ?? "")"
+                    <label for="co-product" class="co-label">Product</label>
+                    <select id="co-product" class="co-select" value="@(_selectedProductId?.ToString() ?? "")"
                             @onchange="OnProductChanged" disabled="@(_products is null)">
                         <option value="">— select a product —</option>
                         @if (_products is not null)
@@ -60,8 +60,8 @@
                 </div>
 
                 <div class="co-picker-field">
-                    <label class="co-label">Variant / SKU</label>
-                    <select class="co-select" value="@(_selectedSkuId?.ToString() ?? "")"
+                    <label for="co-variant-sku" class="co-label">Variant / SKU</label>
+                    <select id="co-variant-sku" class="co-select" value="@(_selectedSkuId?.ToString() ?? "")"
                             @onchange="OnSkuChanged" disabled="@(_skus is null || !_skus.Any())">
                         <option value="">— select SKU —</option>
                         @if (_skus is not null)
@@ -76,14 +76,14 @@
                 </div>
 
                 <div class="co-picker-field co-picker-qty">
-                    <label class="co-label">Qty</label>
-                    <input type="number" class="co-input" min="1" step="1"
+                    <label for="co-qty" class="co-label">Qty</label>
+                    <input id="co-qty" type="number" class="co-input" min="1" step="1"
                            @bind="_pickerQty" @bind:event="oninput" />
                 </div>
 
                 <div class="co-picker-field co-picker-price">
-                    <label class="co-label">Unit price</label>
-                    <input type="number" class="co-input" min="0" step="0.01"
+                    <label for="co-unit-price" class="co-label">Unit price</label>
+                    <input id="co-unit-price" type="number" class="co-input" min="0" step="0.01"
                            @bind="_pickerPrice" @bind:event="oninput" />
                 </div>
 
@@ -142,8 +142,8 @@
 
         <FluentCard>
             <div class="order-card-title" style="margin-bottom: 12px;">Customer</div>
-            <label class="co-label">Client</label>
-            <select class="co-select" @onchange="OnPartnerChanged">
+            <label for="co-client" class="co-label">Client</label>
+            <select id="co-client" class="co-select" @onchange="OnPartnerChanged">
                 <option value="">— select a client —</option>
                 @if (_partners is not null)
                 {
@@ -161,16 +161,16 @@
 
         <FluentCard>
             <div class="order-card-title" style="margin-bottom: 12px;">Order settings</div>
-            <label class="co-label">Channel</label>
-            <select class="co-select" @bind="_channel" style="margin-bottom: 12px;">
+            <label for="co-channel" class="co-label">Channel</label>
+            <select id="co-channel" class="co-select" @bind="_channel" style="margin-bottom: 12px;">
                 <option value="Web">Web</option>
                 <option value="Mobile">Mobile</option>
                 <option value="Pos">POS</option>
                 <option value="Phone">Phone</option>
                 <option value="Email">Email</option>
             </select>
-            <label class="co-label">Notes (internal)</label>
-            <textarea class="co-textarea" rows="3" @bind="_notes" placeholder="Optional note visible to staff…"></textarea>
+            <label for="co-notes-internal" class="co-label">Notes (internal)</label>
+            <textarea id="co-notes-internal" class="co-textarea" rows="3" @bind="_notes" placeholder="Optional note visible to staff…"></textarea>
         </FluentCard>
 
     </div>

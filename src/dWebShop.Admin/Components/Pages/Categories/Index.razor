@@ -9,14 +9,23 @@
 
 <PageTitle>Categories — dWebShop Admin</PageTitle>
 
-<FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom: 16px;">
-    <FluentLabel Style="font-size: 22px; font-weight: 600;">Categories</FluentLabel>
-    <FluentSpacer />
-    <FluentButton Appearance="ButtonAppearance.Primary" IconStart="@(new Icons.Regular.Size16.Add())" OnClick="OpenCreate">
-        Add Category
-    </FluentButton>
-</FluentStack>
-<FluentDivider Style="margin-bottom: 24px;" />
+<div class="admin-page-head">
+    <div>
+        <nav class="admin-breadcrumb">
+            <a href="/products">Catalogue</a> › Categories
+        </nav>
+        <h1 class="admin-page-title">Categories</h1>
+        @if (_categories is not null)
+        {
+            <p class="admin-page-sub">@_categories.Count categor@(_categories.Count == 1 ? "y" : "ies")</p>
+        }
+    </div>
+    <div class="admin-page-actions">
+        <FluentButton Appearance="ButtonAppearance.Primary" IconStart="@(new Icons.Regular.Size16.Add())" OnClick="OpenCreate">
+            Add category
+        </FluentButton>
+    </div>
+</div>
 
 @if (_loading)
 {

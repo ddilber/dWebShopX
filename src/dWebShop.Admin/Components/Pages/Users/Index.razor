@@ -7,11 +7,30 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject IEmailService EmailService
 @inject ILogger<Index> Logger
+@inject NavigationManager Navigation
 
 <PageTitle>Users — dWebShop Admin</PageTitle>
 
-<FluentLabel Style="font-size: 22px; font-weight: 600; margin-bottom: 16px; display: block;">Users</FluentLabel>
-<FluentDivider Style="margin-bottom: 24px;" />
+<div class="admin-page-head">
+    <div>
+        <nav class="admin-breadcrumb">
+            <a href="/users">System</a> › Users
+        </nav>
+        <h1 class="admin-page-title">Users</h1>
+        @if (_users is not null)
+        {
+            <p class="admin-page-sub">
+                @_users.Count user@(_users.Count == 1 ? "" : "s")
+                @if (_users.Any(u => !u.IsApproved)) { <text> · @_users.Count(u => !u.IsApproved) awaiting approval</text> }
+            </p>
+        }
+    </div>
+    <div class="admin-page-actions">
+        <FluentButton Appearance="ButtonAppearance.Primary" IconStart="@(new Icons.Regular.Size16.Add())" OnClick="@(() => Navigation.NavigateTo("/register"))">
+            Add admin
+        </FluentButton>
+    </div>
+</div>
 
 @if (_loading)
 {

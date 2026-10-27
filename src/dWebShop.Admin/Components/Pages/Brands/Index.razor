@@ -9,14 +9,23 @@
 
 <PageTitle>Brands — dWebShop Admin</PageTitle>
 
-<FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom: 16px;">
-    <FluentLabel Style="font-size: 22px; font-weight: 600;">Brands</FluentLabel>
-    <FluentSpacer />
-    <FluentButton Appearance="ButtonAppearance.Primary" IconStart="@(new Icons.Regular.Size16.Add())" OnClick="OpenCreate">
-        Add Brand
-    </FluentButton>
-</FluentStack>
-<FluentDivider Style="margin-bottom: 24px;" />
+<div class="admin-page-head">
+    <div>
+        <nav class="admin-breadcrumb">
+            <a href="/products">Catalogue</a> › Brands
+        </nav>
+        <h1 class="admin-page-title">Brands</h1>
+        @if (_brands is not null)
+        {
+            <p class="admin-page-sub">@_brands.Count brand@(_brands.Count == 1 ? "" : "s")</p>
+        }
+    </div>
+    <div class="admin-page-actions">
+        <FluentButton Appearance="ButtonAppearance.Primary" IconStart="@(new Icons.Regular.Size16.Add())" OnClick="OpenCreate">
+            Add brand
+        </FluentButton>
+    </div>
+</div>
 
 @if (_loading)
 {

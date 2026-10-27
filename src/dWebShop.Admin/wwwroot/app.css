@@ -199,21 +199,6 @@ button { font-family: inherit; }
 }
 
 /* ============================================================
-   Page structure
-   ============================================================ */
-.page-head {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  gap: var(--sp-16); margin-bottom: var(--sp-24); flex-wrap: wrap;
-}
-.page-title { font-size: var(--fs-700); font-weight: var(--fw-semibold); letter-spacing: -.02em; line-height: 1.1; margin: 0; }
-.page-sub   { font-size: var(--fs-300); color: var(--fg-3); margin-top: var(--sp-4); }
-.page-actions { display: flex; gap: var(--sp-8); flex-wrap: wrap; align-items: flex-start; }
-
-.fui-breadcrumb { display: flex; align-items: center; gap: var(--sp-6); font-size: var(--fs-300); color: var(--fg-3); margin-bottom: 4px; }
-.fui-breadcrumb-item { color: var(--fg-3); }
-.fui-breadcrumb-sep  { color: var(--fg-4); }
-
-/* ============================================================
    Card
    ============================================================ */
 .ds-card {

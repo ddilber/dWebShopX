@@ -8,14 +8,25 @@
 
 <PageTitle>Inspirations — dWebShop Admin</PageTitle>
 
-<FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom: 16px;">
-    <FluentLabel Style="font-size: 22px; font-weight: 600;">Inspirations</FluentLabel>
-    <FluentSpacer />
-    <FluentButton Appearance="ButtonAppearance.Primary" IconStart="@(new Icons.Regular.Size16.Add())" OnClick="@(() => Navigation.NavigateTo("/inspirations/new"))">
-        New Article
-    </FluentButton>
-</FluentStack>
-<FluentDivider Style="margin-bottom: 24px;" />
+<div class="admin-page-head">
+    <div>
+        <nav class="admin-breadcrumb">
+            <a href="/blog">Content</a> › Inspirations
+        </nav>
+        <h1 class="admin-page-title">Inspirations</h1>
+        @if (_items is not null)
+        {
+            <p class="admin-page-sub">
+                @_items.Count article@(_items.Count == 1 ? "" : "s") · @_items.Count(i => i.Published) published
+            </p>
+        }
+    </div>
+    <div class="admin-page-actions">
+        <FluentButton Appearance="ButtonAppearance.Primary" IconStart="@(new Icons.Regular.Size16.Add())" OnClick="@(() => Navigation.NavigateTo("/inspirations/new"))">
+            New article
+        </FluentButton>
+    </div>
+</div>
 
 @if (_loading)
 {

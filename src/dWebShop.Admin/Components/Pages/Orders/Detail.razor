@@ -241,26 +241,26 @@ else
             </div>
             <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <label style="font-size: 12px; font-weight: 500; color: var(--colorNeutralForeground2);">Address line 1</label>
-                    <input class="admin-search-input" style="width:100%;" @bind="_addrModel.Address1" placeholder="Street address" />
+                    <label for="od-address-line-1" style="font-size: 12px; font-weight: 500; color: var(--colorNeutralForeground2);">Address line 1</label>
+                    <input id="od-address-line-1" class="admin-search-input" style="width:100%;" @bind="_addrModel.Address1" placeholder="Street address" />
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <label style="font-size: 12px; font-weight: 500; color: var(--colorNeutralForeground2);">Address line 2</label>
-                    <input class="admin-search-input" style="width:100%;" @bind="_addrModel.Address2" placeholder="Apartment, suite, etc. (optional)" />
+                    <label for="od-address-line-2" style="font-size: 12px; font-weight: 500; color: var(--colorNeutralForeground2);">Address line 2</label>
+                    <input id="od-address-line-2" class="admin-search-input" style="width:100%;" @bind="_addrModel.Address2" placeholder="Apartment, suite, etc. (optional)" />
                 </div>
                 <div style="display: flex; gap: 12px;">
                     <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
-                        <label style="font-size: 12px; font-weight: 500; color: var(--colorNeutralForeground2);">ZIP / Postal code</label>
-                        <input class="admin-search-input" style="width:100%;" @bind="_addrModel.ZipCode" placeholder="00000" />
+                        <label for="od-zip-postal-code" style="font-size: 12px; font-weight: 500; color: var(--colorNeutralForeground2);">ZIP / Postal code</label>
+                        <input id="od-zip-postal-code" class="admin-search-input" style="width:100%;" @bind="_addrModel.ZipCode" placeholder="00000" />
                     </div>
                     <div style="flex: 2; display: flex; flex-direction: column; gap: 4px;">
-                        <label style="font-size: 12px; font-weight: 500; color: var(--colorNeutralForeground2);">City</label>
-                        <input class="admin-search-input" style="width:100%;" @bind="_addrModel.City" placeholder="City" />
+                        <label for="od-city" style="font-size: 12px; font-weight: 500; color: var(--colorNeutralForeground2);">City</label>
+                        <input id="od-city" class="admin-search-input" style="width:100%;" @bind="_addrModel.City" placeholder="City" />
                     </div>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <label style="font-size: 12px; font-weight: 500; color: var(--colorNeutralForeground2);">Country</label>
-                    <input class="admin-search-input" style="width:100%;" @bind="_addrModel.Country" placeholder="Country" />
+                    <label for="od-country" style="font-size: 12px; font-weight: 500; color: var(--colorNeutralForeground2);">Country</label>
+                    <input id="od-country" class="admin-search-input" style="width:100%;" @bind="_addrModel.Country" placeholder="Country" />
                 </div>
                 @if (_addrSaveError is not null)
                 {
@@ -289,7 +289,7 @@ else
 
                 @* Product search *@
                 <div style="display: flex; gap: 8px;">
-                    <input class="admin-search-input" style="flex: 1;"
+                    <input aria-label="Search products" class="admin-search-input" style="flex: 1;"
                            @bind="_productSearch"
                            @bind:event="oninput"
                            @onkeyup="@(async e => { if (e.Key == "Enter") await SearchProducts(); })"
@@ -334,8 +334,8 @@ else
                 @if (_selectedProduct is not null && _skuOptions is not null)
                 {
                     <div style="display: flex; flex-direction: column; gap: 4px;">
-                        <label style="font-size: 12px; font-weight: 500; color: var(--colorNeutralForeground2);">SKU</label>
-                        <select class="admin-search-input" @onchange="OnSkuChanged">
+                        <label for="od-sku" style="font-size: 12px; font-weight: 500; color: var(--colorNeutralForeground2);">SKU</label>
+                        <select id="od-sku" class="admin-search-input" @onchange="OnSkuChanged">
                             @foreach (var sku in _skuOptions)
                             {
                                 <option value="@sku.Id" selected="@(_selectedSkuId == sku.Id)">
@@ -346,13 +346,13 @@ else
                     </div>
                     <div style="display: flex; gap: 12px;">
                         <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-size: 12px; font-weight: 500; color: var(--colorNeutralForeground2);">Quantity</label>
-                            <input class="admin-search-input" type="number" min="1" style="width:100%;"
+                            <label for="od-quantity" style="font-size: 12px; font-weight: 500; color: var(--colorNeutralForeground2);">Quantity</label>
+                            <input id="od-quantity" class="admin-search-input" type="number" min="1" style="width:100%;"
                                    @bind="_addItemQty" />
                         </div>
                         <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-size: 12px; font-weight: 500; color: var(--colorNeutralForeground2);">Unit price</label>
-                            <input class="admin-search-input" type="number" min="0" step="0.01" style="width:100%;"
+                            <label for="od-unit-price" style="font-size: 12px; font-weight: 500; color: var(--colorNeutralForeground2);">Unit price</label>
+                            <input id="od-unit-price" class="admin-search-input" type="number" min="0" step="0.01" style="width:100%;"
                                    @bind="_addItemPrice" />
                         </div>
                     </div>
